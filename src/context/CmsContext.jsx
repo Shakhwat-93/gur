@@ -26,7 +26,7 @@ export const DEFAULT_SITE_SETTINGS = {
   pixel_enabled: true,
   tiktok_pixel_id: '',
   fb_pixel_id: '',
-  gtm_id: 'GTM-N9Q2Z7P4'
+  gtm_id: 'GTM-MKND7838'
 };
 
 export const DEFAULT_THEME_SETTINGS = {

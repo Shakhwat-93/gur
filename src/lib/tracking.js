@@ -557,7 +557,7 @@ export async function trackPurchase({ order, siteSettings }) {
 
   // Check if GTM is loaded & active on page
   const isGtmActive = typeof window !== 'undefined' && Boolean(
-    (window.google_tag_manager && (window.google_tag_manager['GTM-N9Q2Z7P4'] || Object.keys(window.google_tag_manager).length > 0)) ||
+    (window.google_tag_manager && (window.google_tag_manager['GTM-MKND7838'] || Object.keys(window.google_tag_manager).length > 0)) ||
     window.__gtm_loaded
   );
 
