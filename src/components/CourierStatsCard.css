@@ -1,0 +1,364 @@
+/* ==========================================================================
+   COURIER RATIO INTELLIGENCE COMPONENT (BD COURIER)
+   Agency-Tier Elite Design: Matches official BD Courier Intelligence dashboard
+   ========================================================================== */
+
+.cri-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: clamp(14px, 2.5vw, 22px);
+  box-sizing: border-box;
+  text-align: left;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+  font-family: inherit;
+}
+
+/* Header */
+.cri-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.cri-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cri-truck-icon {
+  color: #3b82f6;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.cri-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.cri-badge {
+  background: #d1fae5;
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  letter-spacing: 0.3px;
+  border: 1px solid #a7f3d0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.cri-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cri-sync-text {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cri-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #2563eb;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.cri-sync-btn:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.cri-sync-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cri-spin {
+  animation: criSpinAnim 0.9s linear infinite;
+}
+
+@keyframes criSpinAnim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 5 KPI Metric Cards */
+.cri-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 640px) {
+  .cri-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.cri-kpi-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cri-kpi-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cri-kpi-val {
+  font-size: 21px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.cri-kpi-val.succ {
+  color: #059669;
+}
+
+.cri-kpi-val.canc {
+  color: #dc2626;
+}
+
+.cri-kpi-val.risk {
+  text-transform: lowercase;
+}
+
+.cri-kpi-val.risk.safe {
+  color: #059669;
+}
+
+.cri-kpi-val.risk.medium {
+  color: #d97706;
+}
+
+.cri-kpi-val.risk.high {
+  color: #dc2626;
+}
+
+/* Table Area */
+.cri-table-wrap {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  -webkit-overflow-scrolling: touch;
+}
+
+.cri-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 540px;
+}
+
+.cri-table th {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  white-space: nowrap;
+}
+
+.cri-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #f8fafc;
+  font-size: 13.5px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.cri-table tr:last-child td {
+  border-bottom: none;
+}
+
+.cri-table tr:hover td {
+  background: #fafafa;
+}
+
+/* Courier Specific Columns */
+.cri-logo-box {
+  width: 75px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.cri-logo-img {
+  height: 24px;
+  max-width: 75px;
+  object-fit: contain;
+  display: block;
+}
+
+.cri-courier-name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13.5px;
+}
+
+.cri-total-val {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13.5px;
+}
+
+.cri-succ-val {
+  font-weight: 700;
+  color: #059669;
+  font-size: 13.5px;
+}
+
+.cri-canc-val {
+  font-weight: 700;
+  color: #dc2626;
+  font-size: 13.5px;
+}
+
+.cri-ratio-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cri-ratio-num {
+  font-weight: 700;
+  font-size: 13px;
+  color: #0f172a;
+  min-width: 48px;
+}
+
+.cri-progress-track {
+  flex: 1;
+  height: 7px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  min-width: 90px;
+}
+
+.cri-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: #10b981;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Skeleton Loading State */
+.cri-skeleton-box {
+  height: 60px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: criShimmer 1.5s infinite;
+  border-radius: 12px;
+}
+
+.cri-skeleton-table {
+  height: 180px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: criShimmer 1.5s infinite;
+  border-radius: 14px;
+}
+
+@keyframes criShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Unverified / Empty Prompt State */
+.cri-empty-state {
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 14px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.cri-empty-icon {
+  margin: 0 auto 10px;
+  color: #3b82f6;
+}
+
+.cri-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.cri-empty-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+.cri-probe-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transition: all 0.15s ease;
+}
+
+.cri-probe-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
