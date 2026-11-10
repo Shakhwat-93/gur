@@ -3,6 +3,7 @@ export const DELIVERY_CHARGE = 100
 export const DELIVERY_START_NOTICE = '১৫ নভেম্বর থেকে ডেলিভারি শুরু, ইনশাআল্লাহ'
 export const FREE_BONUS_MIN_KG = 3
 export const FREE_BONUS_ITEM_NAME = '৫০০ গ্রাম ঝোলা গুড় (ফ্রি অফার)'
+export const MAX_LOOSE_KG_PER_ITEM = 5
 
 export const BRAND_IMAGES = {
   logo: '/img/file_00000000bb8c8208935485c59b7b5c83.png',
@@ -271,7 +272,7 @@ export const orderOptions = [
     price: g.price,
     freeDelivery: false,
     min: 1,
-    max: 20,
+    max: MAX_LOOSE_KG_PER_ITEM,
     unit: 'কেজি',
     image: g.image,
     contain: g.contain,

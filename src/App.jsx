@@ -6,8 +6,8 @@ import {
   DELIVERY_START_NOTICE,
   FREE_BONUS_MIN_KG,
   FREE_BONUS_ITEM_NAME,
+  MAX_LOOSE_KG_PER_ITEM,
   combos,
-  gurPrices,
   craftSteps,
   orderOptions
 } from './data.js'
@@ -67,10 +67,9 @@ function Header({ totalItems, grandTotal, cartBadgeRef }) {
 
           <nav className="nav-links" aria-label="প্রাথমিক নেভিগেশন">
             <a href="#combo">৯৯০৳ কম্বো</a>
-            <a href="#pricing">গুড়ের তালিকা</a>
             <a href="#craft">প্রস্তুতি</a>
             <a href="#reviews">রিভিউ</a>
-            <a href="#order">অর্ডার ফর্ম</a>
+            <a href="#order">প্যাকেজ ও অর্ডার</a>
           </nav>
 
           <div className="header-actions">
@@ -152,15 +151,15 @@ function Hero({ onPickAndOrder }) {
           <div className="hero-highlights hero-stagger">
             <span className="hero-chip">🪔 ৯৯০৳ কম্বো (২.৫ কেজি)</span>
             <span className="hero-chip palm">🚚 ফ্রি হোম ডেলিভারি</span>
-            <span className="hero-chip">💠 ৩ কেজিতে ৫০০ গ্রাম ঝোলা গুড় ফ্রি</span>
+            <span className="hero-chip">💠 যেকোনো তিন কেজি গুড় নিলে ৫০০ গ্রাম ঝোলা গুড় ফ্রি</span>
           </div>
 
           <div className="hero-ctas hero-stagger">
             <button type="button" className="btn btn-lg shine" onClick={() => onPickAndOrder('gur-combo-990')}>
               ৯৯০৳ কম্বো অর্ডার করুন <ArrowRight size={18} />
             </button>
-            <a href="#pricing" className="btn btn-outline-gold btn-lg">
-              প্রতি কেজির তালিকা দেখুন
+            <a href="#order" className="btn btn-outline-gold btn-lg">
+              প্রতি কেজির তালিকা ও অর্ডার
             </a>
           </div>
         </div>
@@ -203,7 +202,7 @@ function TrustStrip() {
   const pillars = [
     { icon: ShieldCheck, title: '১০০% খাঁটি রস', desc: 'চিনি ও কেমিক্যালমুক্ত নিশ্চয়তা' },
     { icon: Truck, title: 'ফ্রি ডেলিভারি', desc: '৯৯০৳ কম্বোতে কোনো চার্জ নেই' },
-    { icon: Gift, title: '৩ কেজিতে ফ্রি গিফট', desc: '৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি' },
+    { icon: Gift, title: '৩ কেজিতে ফ্রি গিফট', desc: 'যেকোনো তিন কেজি গুড় নিলে ৫০০ গ্রাম ঝোলা গুড় ফ্রি' },
     { icon: CalendarCheck, title: '১৫ নভেম্বর ডেলিভারি', desc: 'ইনশাআল্লাহ · ক্যাশ অন ডেলিভারি' },
   ]
   return (
@@ -304,137 +303,6 @@ function Combos({ comboQty, onPickAndOrder }) {
             </div>
           </div>
         </article>
-      </div>
-    </section>
-  )
-}
-
-function GurCatalog({ selected, looseKg, onAddItem, onUpdateQty, onGoOrder }) {
-  const gridRef = useRef(null)
-  useEffect(() => observeStaggerGroup(gridRef.current, '.gur-card'), [])
-
-  const remainingForFree = Math.max(0, FREE_BONUS_MIN_KG - looseKg)
-  const progressRatio = Math.min(1, looseKg / FREE_BONUS_MIN_KG)
-
-  return (
-    <section className="section" id="pricing">
-      <div className="container">
-        <div className="sec-head reveal">
-          <span className="eyebrow">💰 ম্যাংগো গার্ডেনের মূল্য তালিকা</span>
-          <h2>খাঁটি খেজুরের গুড় (প্রতি কেজির মূল্য)</h2>
-          <p>আপনার পছন্দ অনুযায়ী ১ কেজি বা মিক্স করে ৩ কেজি+ অর্ডার করুন</p>
-        </div>
-
-        <div className="offer-banner reveal">
-          <div className="offer-banner-top">
-            <div className="offer-banner-main">
-              <div className="offer-banner-icon">
-                <Gift size={22} />
-              </div>
-              <div>
-                <strong>💠 বিশেষ অফার: ৩ কেজি নিলে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি!</strong>
-                <small>কার্ড থেকে পছন্দের গুড় কার্টে যোগ করলেই সাথে সাথে ফ্রি অফার আনলক হবে</small>
-              </div>
-            </div>
-            <span className="offer-date-pill">📦 {DELIVERY_START_NOTICE}</span>
-          </div>
-
-          <div className="catalog-bonus-bar">
-            <div className="catalog-bonus-row">
-              <span>
-                {looseKg >= FREE_BONUS_MIN_KG
-                  ? '🎉 অভিনন্দন! ৩ কেজি+ হওয়ায় ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি আনলক হয়েছে!'
-                  : looseKg > 0
-                  ? `আর ${toBn(remainingForFree)} কেজি যোগ করলেই ৫০০ গ্রাম ঝোলা গুড় ফ্রি পাবেন`
-                  : 'এখনো কোনো কেজি আইটেম যোগ করা হয়নি (৩ কেজি = ফ্রি গিফট)'}
-              </span>
-              <span>{toBn(Math.min(looseKg, FREE_BONUS_MIN_KG))}/{toBn(FREE_BONUS_MIN_KG)} কেজি</span>
-            </div>
-            <div className="catalog-bonus-track">
-              <div className="catalog-bonus-fill" style={{ transform: `scaleX(${progressRatio})` }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="gur-grid" ref={gridRef}>
-          {gurPrices.map((g) => {
-            const qty = selected[g.id] || 0
-            const imgWrapClass = [
-              'gur-card-img-wrap',
-              g.contain ? 'is-contain' : '',
-              g.cropCorner ? 'is-crop-corner' : '',
-              g.zoomFocus ? 'is-zoom-focus' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')
-
-            return (
-              <article
-                className={`gur-card stagger-card ${g.featured || qty > 0 ? 'featured' : ''}`}
-                key={g.id}
-              >
-                <div className={imgWrapClass}>
-                  <img
-                    src={g.image}
-                    alt={g.name}
-                    loading="lazy"
-                    decoding="async"
-                    style={g.pos && !g.cropCorner && !g.zoomFocus ? { objectPosition: g.pos } : undefined}
-                  />
-                  <div className="gur-img-scrim" />
-                  <span className="gur-tag-pill">{g.tag}</span>
-                  {qty > 0 ? (
-                    <button type="button" className="gur-pop-pill gur-in-cart-pill" onClick={onGoOrder}>
-                      ✓ কার্টে ({toBn(qty)}) →
-                    </button>
-                  ) : (
-                    g.featured && <span className="gur-pop-pill">★ জনপ্রিয়</span>
-                  )}
-                  {g.pairing && <span className="gur-pairing-badge">🍽️ {g.pairing}</span>}
-                </div>
-
-                <div className="gur-card-body">
-                  <div>
-                    <h3>{g.name}</h3>
-                    <p>{g.desc}</p>
-                  </div>
-                  <div className="gur-card-foot">
-                    <span className="gur-price">
-                      ৳{taka(g.price)} <small>/{g.unit}</small>
-                    </span>
-                    {qty > 0 ? (
-                      <div className="mini-stepper">
-                        <button
-                          type="button"
-                          onClick={() => onUpdateQty(g.id, qty - 1, 20)}
-                          aria-label={`${g.name} কমান`}
-                        >
-                          −
-                        </button>
-                        <span>{toBn(qty)} কেজি</span>
-                        <button
-                          type="button"
-                          onClick={() => onUpdateQty(g.id, qty + 1, 20)}
-                          aria-label={`${g.name} বাড়ান`}
-                        >
-                          +
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-palm"
-                        onClick={() => onAddItem(g.id)}
-                      >
-                        + কার্টে দিন
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </article>
-            )
-          })}
-        </div>
       </div>
     </section>
   )
@@ -727,6 +595,7 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
                       <button
                         type="button"
                         onClick={() => onUpdateQty(comboOption.id, comboQty + 1, comboOption.max)}
+                        disabled={comboQty >= comboOption.max}
                         aria-label="প্যাকেজ বাড়ান"
                       >
                         +
@@ -738,7 +607,7 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
             </div>
 
             <div className="opt-group-title">
-              <span>🍯 প্রতি কেজির খাঁটি খেজুরের গুড়</span>
+              <span>🍯 প্রতি কেজির খাঁটি খেজুরের গুড় (প্রতি আইটেম সর্বোচ্চ {toBn(MAX_LOOSE_KG_PER_ITEM)} কেজি)</span>
               <span>নির্বাচিত: {toBn(looseKg)} কেজি</span>
             </div>
 
@@ -749,7 +618,7 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
                     ? '🎉 অভিনন্দন! ৩ কেজি+ গুড়ে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি যুক্ত হয়েছে!'
                     : looseKg > 0
                     ? `💠 আর ${toBn(FREE_BONUS_MIN_KG - looseKg)} কেজি নিলেই ৫০০ গ্রাম ঝোলা গুড় ফ্রি!`
-                    : '💠 ৩ কেজি নিলে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি!'}
+                    : '💠 যেকোনো তিন কেজি গুড় নিলে ৫০০ গ্রাম ঝোলা গুড় ফ্রি!'}
                 </span>
                 <span>{toBn(Math.min(looseKg, FREE_BONUS_MIN_KG))}/{toBn(FREE_BONUS_MIN_KG)} কেজি</span>
               </div>
@@ -808,7 +677,9 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
                         <button
                           type="button"
                           onClick={() => onUpdateQty(opt.id, qty + 1, opt.max)}
-                          aria-label={`${opt.label} বাড়ান`}
+                          disabled={qty >= opt.max}
+                          aria-label={`${opt.label} বাড়ান (সর্বোচ্চ ${toBn(opt.max)} কেজি)`}
+                          title={`সর্বোচ্চ ${toBn(opt.max)} কেজি নেওয়া যাবে`}
                         >
                           +
                         </button>
@@ -912,7 +783,7 @@ function FAQ() {
   const qs = [
     ['ডেলিভারি কবে থেকে শুরু হবে?', 'আগামী ১৫ নভেম্বর থেকে ডেলিভারি শুরু হবে, ইনশাআল্লাহ। এখন প্রি-অর্ডার করে রাখলে সিরিয়াল অনুযায়ী দ্রুত ডেলিভারি পাবেন।'],
     ['৯৯০ টাকার বিশেষ প্যাকেজে কী কী থাকছে?', 'মাত্র ৯৯০ টাকায় মোট ২.৫ কেজি গুড়: হাফ কেজি গোল পাটালি, হাফ কেজি ফয়েল পাটালি, হাফ কেজি ঝোলা গুড়, হাফ কেজি দানাদার গুড় এবং হাফ কেজি চকলেট গুড় — সাথে হোম ডেলিভারি চার্জ একেবারেই ফ্রি!'],
-    ['৩ কেজি গুড়ের বিশেষ অফারটি কী?', 'প্রতি কেজির মূল্য তালিকা থেকে মোট ৩ কেজি বা তার বেশি গুড় অর্ডার করলে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি পাবেন।'],
+    ['৩ কেজি গুড়ের বিশেষ অফারটি কী?', 'অর্ডার ফর্মের তালিকা থেকে যেকোনো তিন কেজি (মিক্স করেও) বা তার বেশি গুড় অর্ডার করলে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি পাবেন।'],
     ['গুড় কি ১০০% খাঁটি ও চিনিমুক্ত?', 'জ্বি, ম্যাংগো গার্ডেনের প্রতিটি গুড় কোনো প্রকার চিনি, হাইড্রোজ বা ক্ষতিকর কেমিক্যাল ছাড়াই খাঁটি খেজুরের রস থেকে তৈরি।'],
     ['টাকা কীভাবে পরিশোধ করব?', 'সম্পূর্ণ ক্যাশ অন ডেলিভারি — পণ্য হাতে পেয়ে দেখে ডেলিভারি ম্যানকে টাকা দেবেন।'],
   ]
@@ -1013,18 +884,22 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
   }
 
   const addItem = (id) => {
+    const option = orderOptions.find((o) => o.id === id)
+    const limit = option?.max ?? MAX_LOOSE_KG_PER_ITEM
     setSelected((prev) => ({
       ...prev,
-      [id]: Math.max(1, prev[id] || 0)
+      [id]: Math.min(limit, Math.max(1, prev[id] || 0))
     }))
     pulseElement(cartBadgeRef.current)
   }
 
-  const updateQty = (id, qty, max = 20) => {
+  const updateQty = (id, qty, max) => {
+    const option = orderOptions.find((o) => o.id === id)
+    const limit = max ?? option?.max ?? MAX_LOOSE_KG_PER_ITEM
     setSelected((prev) => {
       const next = { ...prev }
       if (qty <= 0) delete next[id]
-      else next[id] = Math.min(max, qty)
+      else next[id] = Math.min(limit, qty)
       return next
     })
     pulseElement(cartBadgeRef.current)
@@ -1054,13 +929,6 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
         <Hero onPickAndOrder={pickAndScrollToOrder} />
         <TrustStrip />
         <Combos comboQty={comboQty} onPickAndOrder={pickAndScrollToOrder} />
-        <GurCatalog
-          selected={selected}
-          looseKg={looseKg}
-          onAddItem={addItem}
-          onUpdateQty={updateQty}
-          onGoOrder={() => scrollToSection('order')}
-        />
         <CraftAndStory />
         <CustomerReviews />
         <OrderForm
