@@ -98,8 +98,18 @@ export function CmsProvider({ children }) {
       // 1. Site Settings
       const { data: sData } = await supabase.from('site_settings').select('*').eq('id', 'general').maybeSingle();
       if (sData?.data) {
-        setSiteSettings(sData.data);
-        if (sData.data.store_name) document.title = sData.data.store_name;
+        const mergedSettings = { ...DEFAULT_SITE_SETTINGS, ...sData.data };
+        if (!mergedSettings.phone_1 || /000000/.test(mergedSettings.phone_1)) {
+          mergedSettings.phone_1 = DEFAULT_SITE_SETTINGS.phone_1;
+        }
+        if (!mergedSettings.whatsapp_number || /000000/.test(mergedSettings.whatsapp_number)) {
+          mergedSettings.whatsapp_number = DEFAULT_SITE_SETTINGS.whatsapp_number;
+        }
+        if (!mergedSettings.gtm_id) {
+          mergedSettings.gtm_id = DEFAULT_SITE_SETTINGS.gtm_id;
+        }
+        setSiteSettings(mergedSettings);
+        if (mergedSettings.store_name) document.title = mergedSettings.store_name;
       }
 
       // 2. Theme Settings

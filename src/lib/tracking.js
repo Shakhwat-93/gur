@@ -439,68 +439,104 @@ export function trackAddToCart({ product, quantity = 1, total, siteSettings }) {
 }
 
 // 3. INITIATE CHECKOUT EVENT
-export function trackInitiateCheckout({ product, quantity = 1, total, siteSettings }) {
-  if (typeof window === 'undefined' || !product) return;
+export function trackInitiateCheckout({ product, quantity = 1, total, items = null, siteSettings = null } = {}) {
+  if (typeof window === 'undefined') return;
+  const hasItemsList = Array.isArray(items) && items.length > 0;
+  if (!product && !hasItemsList) return;
+
   const eventId = `ic_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-  const val = Number(total || (product.price || 0) * quantity);
-  const title = product.title || product.package_name || 'খাঁটি খেজুরের গুড়';
-  const prodId = String(product.id || 'kb-pack');
-  const unitPrice = Number(product.price || (quantity > 0 ? val / quantity : val));
+  const fallbackTitle = product?.title || product?.package_name || product?.name || 'খাঁটি খেজুরের গুড়';
+  const fallbackId = String(product?.id || 'gur-combo-990');
+  const fallbackQty = Math.max(1, Number(quantity || 1));
+
+  const normalizedItems = hasItemsList
+    ? items.map((it) => ({
+        item_id: String(it.id || it.item_id || fallbackId),
+        item_name: String(it.name || it.label || it.item_name || fallbackTitle),
+        price: Number(it.price ?? it.unit_price ?? 0),
+        quantity: Number(it.quantity ?? it.qty ?? 1),
+        item_category: 'Food & Grocery'
+      }))
+    : [
+        {
+          item_id: fallbackId,
+          item_name: fallbackTitle,
+          price: Number(product?.price ?? (total ? Number(total) / fallbackQty : 0)),
+          quantity: fallbackQty,
+          item_category: 'Food & Grocery'
+        }
+      ];
+
+  const computedTotal = normalizedItems.reduce((sum, it) => sum + it.price * it.quantity, 0);
+  const val = Number(total !== undefined && total !== null ? total : computedTotal);
+  const totalQty = Number(
+    quantity || normalizedItems.reduce((sum, it) => sum + it.quantity, 0) || 1
+  );
+  const contentIds = normalizedItems.map((it) => it.item_id);
+  const summaryTitle = product?.title || normalizedItems.map((it) => it.item_name).join(' + ');
 
   // 1. Meta Pixel
   if (window.fbq) {
-    window.fbq(
-      'track',
-      'InitiateCheckout',
-      {
-        content_name: title,
-        content_ids: [prodId],
-        content_type: 'product',
-        value: val,
-        currency: 'BDT',
-        num_items: quantity
-      },
-      { eventID: eventId }
-    );
+    try {
+      window.fbq(
+        'track',
+        'InitiateCheckout',
+        {
+          content_name: summaryTitle,
+          content_ids: contentIds,
+          content_type: 'product',
+          value: val,
+          currency: 'BDT',
+          num_items: totalQty
+        },
+        { eventID: eventId }
+      );
+    } catch (e) {
+      console.warn('[Tracking] Meta InitiateCheckout notice:', e);
+    }
   }
 
   // 2. TikTok Pixel
   if (window.ttq) {
-    window.ttq.track('InitiateCheckout', {
-      content_type: 'product',
-      contents: [
+    try {
+      window.ttq.track(
+        'InitiateCheckout',
         {
-          content_id: prodId,
           content_type: 'product',
-          content_name: title,
-          quantity: quantity,
-          price: unitPrice
-        }
-      ],
-      value: val,
-      currency: 'BDT'
-    });
-    console.log('[Tracking] TikTok InitiateCheckout tracked:', { prodId, title, val, quantity });
+          contents: normalizedItems.map((it) => ({
+            content_id: it.item_id,
+            content_type: 'product',
+            content_name: it.item_name,
+            quantity: it.quantity,
+            price: it.price
+          })),
+          value: val,
+          currency: 'BDT'
+        },
+        { event_id: eventId }
+      );
+      console.log('[Tracking] TikTok InitiateCheckout tracked:', { contentIds, val, totalQty });
+    } catch (e) {
+      console.warn('[Tracking] TikTok InitiateCheckout notice:', e);
+    }
   }
 
-  // 3. Google dataLayer
-  if (window.dataLayer) {
+  // 3. Google dataLayer (GA4 & GTM standard begin_checkout)
+  try {
+    window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ ecommerce: null });
     window.dataLayer.push({
       event: 'begin_checkout',
+      event_id: eventId,
       ecommerce: {
         currency: 'BDT',
         value: val,
-        items: [
-          {
-            item_id: prodId,
-            item_name: title,
-            price: unitPrice,
-            quantity: quantity
-          }
-        ]
+        items: normalizedItems
       }
     });
+    console.log('[Tracking] Google dataLayer begin_checkout pushed:', { eventId, value: val, items: normalizedItems });
+  } catch (e) {
+    console.warn('[Tracking] Google dataLayer begin_checkout notice:', e);
   }
 }
 

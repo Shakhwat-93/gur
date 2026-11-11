@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ShieldCheck, Truck, Gift, CalendarCheck, Check, ShoppingBag, Sparkles, ArrowRight } from 'lucide-react'
+import { ShieldCheck, Truck, Gift, CalendarCheck, Check, ShoppingBag, Sparkles, ArrowRight, Play, Pause, Volume2, VolumeX } from 'lucide-react'
 import {
   BRAND_IMAGES,
   DELIVERY_CHARGE,
@@ -7,6 +7,9 @@ import {
   FREE_BONUS_MIN_KG,
   FREE_BONUS_ITEM_NAME,
   MAX_LOOSE_KG_PER_ITEM,
+  MAX_COMBO_PACKS,
+  WHATSAPP_DISPLAY,
+  WHATSAPP_E164,
   combos,
   craftSteps,
   orderOptions
@@ -16,9 +19,9 @@ import { CmsProvider, useCms } from './context/CmsContext.jsx'
 import AdminApp from './admin/AdminApp.jsx'
 import OrderSuccessPage from './pages/OrderSuccessPage.jsx'
 import CustomerReviews from './components/CustomerReviews.jsx'
-import { fetchClientIp, trackMessageAction } from './lib/tracking.js'
+import { fetchClientIp, trackInitiateCheckout, trackMessageAction } from './lib/tracking.js'
 import { normalizeBdPhone, isValidBdPhone } from './lib/phoneNormalizer.js'
-import { mountHeroChoreography, observeStaggerGroup, observeSvgDraw, pulseElement } from './lib/motion.js'
+import { mountHeroChoreography, observeStaggerGroup, observeSvgDraw, pulseElement, prefersReducedMotion } from './lib/motion.js'
 
 /* ---------- helpers ---------- */
 const bnDigits = '০১২৩৪৫৬৭৮৯'
@@ -49,7 +52,7 @@ const scrollToSection = (id) => {
 }
 
 /* ---------- sections ---------- */
-function Header({ totalItems, grandTotal, cartBadgeRef }) {
+function Header({ totalItems, grandTotal, cartBadgeRef, onOpenCheckout }) {
   return (
     <>
       <div className="top-strip">
@@ -69,7 +72,17 @@ function Header({ totalItems, grandTotal, cartBadgeRef }) {
             <a href="#combo">৯৯০৳ কম্বো</a>
             <a href="#craft">প্রস্তুতি</a>
             <a href="#reviews">রিভিউ</a>
-            <a href="#order">প্যাকেজ ও অর্ডার</a>
+            <a
+              href="#order"
+              onClick={(e) => {
+                if (onOpenCheckout) {
+                  e.preventDefault()
+                  onOpenCheckout()
+                }
+              }}
+            >
+              প্যাকেজ ও অর্ডার
+            </a>
           </nav>
 
           <div className="header-actions">
@@ -90,7 +103,7 @@ function Header({ totalItems, grandTotal, cartBadgeRef }) {
               type="button"
               ref={cartBadgeRef}
               className="header-cart-btn"
-              onClick={() => scrollToSection('order')}
+              onClick={() => (onOpenCheckout ? onOpenCheckout() : scrollToSection('order'))}
             >
               <ShoppingBag size={16} />
               <span>অর্ডার ({toBn(totalItems)}) · ৳{taka(grandTotal)}</span>
@@ -102,7 +115,7 @@ function Header({ totalItems, grandTotal, cartBadgeRef }) {
   )
 }
 
-function Hero({ onPickAndOrder }) {
+function Hero({ onPickAndOrder, onOpenCheckout }) {
   const heroRef = useRef(null)
 
   useEffect(() => {
@@ -158,7 +171,16 @@ function Hero({ onPickAndOrder }) {
             <button type="button" className="btn btn-lg shine" onClick={() => onPickAndOrder('gur-combo-990')}>
               ৯৯০৳ কম্বো অর্ডার করুন <ArrowRight size={18} />
             </button>
-            <a href="#order" className="btn btn-outline-gold btn-lg">
+            <a
+              href="#order"
+              className="btn btn-outline-gold btn-lg"
+              onClick={(e) => {
+                if (onOpenCheckout) {
+                  e.preventDefault()
+                  onOpenCheckout()
+                }
+              }}
+            >
               প্রতি কেজির তালিকা ও অর্ডার
             </a>
           </div>
@@ -224,6 +246,164 @@ function TrustStrip() {
             )
           })}
         </div>
+      </div>
+    </section>
+  )
+}
+
+function LiveProcessVideo({ onPickAndOrder }) {
+  const videoRef = useRef(null)
+  const cardRef = useRef(null)
+  const userPausedRef = useRef(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMuted, setIsMuted] = useState(true)
+
+  useEffect(() => {
+    const vid = videoRef.current
+    const wrap = cardRef.current
+    if (!vid || !wrap) return
+
+    if (prefersReducedMotion()) {
+      vid.pause()
+      setIsPlaying(false)
+      return
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (!entry) return
+        if (entry.isIntersecting) {
+          if (!userPausedRef.current) {
+            const p = vid.play()
+            if (p && typeof p.catch === 'function') p.catch(() => {})
+          }
+        } else {
+          vid.pause()
+        }
+      },
+      { threshold: 0.25 }
+    )
+
+    io.observe(wrap)
+    return () => io.disconnect()
+  }, [])
+
+  const togglePlay = () => {
+    const vid = videoRef.current
+    if (!vid) return
+    if (vid.paused) {
+      userPausedRef.current = false
+      const p = vid.play()
+      if (p && typeof p.catch === 'function') p.catch(() => {})
+    } else {
+      userPausedRef.current = true
+      vid.pause()
+    }
+  }
+
+  const toggleMute = () => {
+    const vid = videoRef.current
+    if (!vid) return
+    const nextMuted = !isMuted
+    vid.muted = nextMuted
+    setIsMuted(nextMuted)
+    if (!nextMuted && vid.paused) {
+      userPausedRef.current = false
+      const p = vid.play()
+      if (p && typeof p.catch === 'function') p.catch(() => {})
+    }
+  }
+
+  return (
+    <section className="section live-video-section" id="live-process">
+      <div className="container">
+        <article className="live-video-card reveal" ref={cardRef}>
+          <div className="live-video-stage">
+            <div className="live-video-frame">
+              <video
+                ref={videoRef}
+                src={BRAND_IMAGES.craftVideo}
+                poster={BRAND_IMAGES.craftVideoPoster}
+                muted={isMuted}
+                loop
+                playsInline
+                preload="metadata"
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                aria-label="তাফালে খেজুরের রস জ্বাল দিয়ে খাঁটি গুড় তৈরির আসল ভিডিও"
+              />
+              <div className="live-video-vignette" aria-hidden="true" />
+
+              <div className="live-video-top-pill">
+                <span className={`live-ember-dot ${isPlaying ? 'active' : ''}`} />
+                <span>বাগানের চুলা · লাইভ প্রস্তুতি</span>
+              </div>
+
+              <div className="live-video-controls-bar">
+                <button
+                  type="button"
+                  className="video-ctrl-btn"
+                  onClick={togglePlay}
+                  aria-label={isPlaying ? 'ভিডিও থামান' : 'ভিডিও চালান'}
+                >
+                  {isPlaying ? <Pause size={15} /> : <Play size={15} />}
+                  <span>{isPlaying ? 'বিরতি' : 'চালাও'}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`video-ctrl-btn ${!isMuted ? 'is-active' : ''}`}
+                  onClick={toggleMute}
+                  aria-label={isMuted ? 'সাউন্ড চালু করুন' : 'সাউন্ড বন্ধ করুন'}
+                >
+                  {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                  <span>{isMuted ? 'সাউন্ড শুনুন' : 'সাউন্ড অন'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="live-video-copy">
+            <span className="live-video-eyebrow">🔥 সরাসরি বাগানের তাফাল থেকে</span>
+            <h2>দেখুন চিনি ছাড়াই কীভাবে ফুটে তৈরি হয় আসল খেজুরের গুড়</h2>
+            <p className="live-video-lead">
+              ভোরের কুয়াশায় সংগ্রহ করা টাটকা খেজুরের রস কাঠের চুলায় মৃদু আঁচে ঘণ্টার পর ঘণ্টা জ্বাল দিয়ে তৈরি হয় আমাদের প্রতিটি ব্যাচ। সোনালি ফেনা আর খাঁটি ঘ্রাণই বিশুদ্ধতার আসল সাক্ষী।
+            </p>
+
+            <ul className="live-video-points">
+              <li>
+                <span className="live-point-check"><Check size={14} strokeWidth={3} /></span>
+                <span>কোনো চিনি, হাইড্রোজ বা ফিটকিরি ছাড়াই ১০০% আসল রস</span>
+              </li>
+              <li>
+                <span className="live-point-check"><Check size={14} strokeWidth={3} /></span>
+                <span>সরাসরি নিজস্ব কারিগরের তত্ত্বাবধানে স্বাস্থ্যসম্মত তাফাল জ্বাল</span>
+              </li>
+              <li>
+                <span className="live-point-check"><Check size={14} strokeWidth={3} /></span>
+                <span>{DELIVERY_START_NOTICE} · হাতে পেয়ে যাচাই করে পেমেন্ট</span>
+              </li>
+            </ul>
+
+            <div className="live-video-ctas">
+              <button
+                type="button"
+                className="btn btn-lg shine"
+                onClick={() => onPickAndOrder('gur-combo-990')}
+              >
+                ৯৯০৳ কম্বো অর্ডার করুন <ArrowRight size={18} />
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-gold btn-lg"
+                onClick={toggleMute}
+              >
+                {isMuted ? <Volume2 size={17} /> : <VolumeX size={17} />}
+                <span>{isMuted ? 'ভিডিওর সাউন্ড শুনুন' : 'সাউন্ড মিউট করুন'}</span>
+              </button>
+            </div>
+          </div>
+        </article>
       </div>
     </section>
   )
@@ -409,20 +589,23 @@ function CraftAndStory() {
   )
 }
 
-function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSuccess }) {
+function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSuccess, onBeginCheckout }) {
   const { refreshAll } = useCms() || {}
   const [form, setForm] = useState({ name: '', phone: '', address: '' })
   const [err, setErr] = useState({})
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [orderErr, setOrderErr] = useState('')
+  const orderSectionRef = useRef(null)
+  const beginCheckoutRef = useRef(onBeginCheckout)
+  beginCheckoutRef.current = onBeginCheckout
 
   const comboOption = orderOptions.find((o) => o.isCombo)
   const kgOptions = orderOptions.filter((o) => !o.isCombo)
 
-  const comboQty = selected[comboOption.id] || 0
+  const comboQty = Math.min(comboOption.max, selected[comboOption.id] || 0)
   const looseEntries = kgOptions
-    .map((opt) => ({ opt, qty: selected[opt.id] || 0 }))
+    .map((opt) => ({ opt, qty: Math.min(opt.max, selected[opt.id] || 0) }))
     .filter((entry) => entry.qty > 0)
 
   const looseKg = looseEntries.reduce((sum, entry) => sum + entry.qty, 0)
@@ -436,6 +619,21 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
   const hasItems = comboQty > 0 || looseKg > 0
   const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
   const total = subtotal + delivery
+
+  useEffect(() => {
+    const el = orderSectionRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          beginCheckoutRef.current?.()
+        }
+      },
+      { threshold: 0.18 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -454,6 +652,7 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
     setErr(er)
     if (Object.keys(er).length) return
 
+    beginCheckoutRef.current?.()
     setLoading(true)
     const orderId = 'MG-' + Date.now().toString(36).toUpperCase()
     const clientIp = await fetchClientIp()
@@ -545,7 +744,7 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
   }
 
   return (
-    <section className="section" id="order">
+    <section className="section" id="order" ref={orderSectionRef}>
       <div className="container">
         <div className="sec-head reveal">
           <span className="eyebrow">🛒 অর্ডার ফর্ম</span>
@@ -553,7 +752,13 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
           <p>ক্যাশ অন ডেলিভারি · {DELIVERY_START_NOTICE}</p>
         </div>
 
-        <form className="checkout-grid reveal" onSubmit={submit} noValidate>
+        <form
+          className="checkout-grid reveal"
+          onSubmit={submit}
+          onFocus={() => beginCheckoutRef.current?.()}
+          onInput={() => beginCheckoutRef.current?.()}
+          noValidate
+        >
           <div className="checkout-panel">
             <div className="opt-header-row">
               <span className="opt-header-title">১. প্যাকেজ ও গুড় নির্বাচন করুন</span>
@@ -561,7 +766,8 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
             </div>
 
             <div className="opt-group-title">
-              <span>🪔 বিশেষ প্যাকেজ (হোম ডেলিভারি ফ্রি)</span>
+              <span>🪔 বিশেষ প্যাকেজ (হোম ডেলিভারি ফ্রি · সর্বোচ্চ {toBn(MAX_COMBO_PACKS)} প্যাক)</span>
+              {comboQty > 0 && <span>নির্বাচিত: {toBn(comboQty)} প্যাক</span>}
             </div>
             <div className="opts">
               <div className={`opt-row ${comboQty > 0 ? 'active' : ''}`}>
@@ -596,7 +802,8 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
                         type="button"
                         onClick={() => onUpdateQty(comboOption.id, comboQty + 1, comboOption.max)}
                         disabled={comboQty >= comboOption.max}
-                        aria-label="প্যাকেজ বাড়ান"
+                        aria-label={`প্যাকেজ বাড়ান (সর্বোচ্চ ${toBn(comboOption.max)} প্যাক)`}
+                        title={`সর্বোচ্চ ${toBn(comboOption.max)} প্যাক নেওয়া যাবে`}
                       >
                         +
                       </button>
@@ -813,19 +1020,7 @@ function FAQ() {
   )
 }
 
-function StickyBar({ totalItems, grandTotal, hasFreeShipping }) {
-  const [show, setShow] = useState(false)
-  useEffect(() => {
-    const onScroll = () => {
-      const order = document.getElementById('order')
-      const r = order?.getBoundingClientRect()
-      const inOrder = r && r.top < window.innerHeight && r.bottom > 0
-      setShow(window.scrollY > 450 && !inOrder)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
+function StickyBar({ show, totalItems, grandTotal, hasFreeShipping, onOpenCheckout }) {
   return (
     <div className={`sticky-bar ${show ? 'show' : ''}`}>
       <div>
@@ -836,77 +1031,224 @@ function StickyBar({ totalItems, grandTotal, hasFreeShipping }) {
             : '৫ ধরনের খাঁটি গুড় · ৳৯৯০'}
         </b>
       </div>
-      <button type="button" className="btn shine" onClick={() => scrollToSection('order')}>
+      <button
+        type="button"
+        className="btn shine"
+        onClick={() => (onOpenCheckout ? onOpenCheckout() : scrollToSection('order'))}
+      >
         অর্ডার সম্পন্ন করুন
       </button>
     </div>
   )
 }
 
-function FloatingFacebook() {
+function resolveWhatsAppConfig(siteSettings) {
+  const rawDigits = String(siteSettings?.whatsapp_number || '').replace(/[^0-9]/g, '')
+  const isPlaceholder = !rawDigits || /^880?1700000000$/.test(rawDigits) || /000000/.test(rawDigits)
+  if (isPlaceholder) {
+    return { waE164: WHATSAPP_E164, waDisplay: WHATSAPP_DISPLAY }
+  }
+  const waE164 = rawDigits.startsWith('880')
+    ? rawDigits
+    : rawDigits.startsWith('0')
+    ? `88${rawDigits}`
+    : rawDigits
+  const localDigits = waE164.startsWith('880') ? `0${waE164.slice(3)}` : waE164
+  const waDisplay =
+    localDigits.length === 11 ? `${localDigits.slice(0, 5)}-${localDigits.slice(5)}` : WHATSAPP_DISPLAY
+  return { waE164, waDisplay }
+}
+
+function FloatingChatDock({ raised, siteSettings }) {
+  const { waE164, waDisplay } = resolveWhatsAppConfig(siteSettings)
+  const fbUrl = siteSettings?.facebook_page || 'https://www.facebook.com/mangogardenbd1'
+  const waText = encodeURIComponent(
+    'আসসালামু আলাইকুম ম্যাংগো গার্ডেন, খাঁটি খেজুরের গুড় সম্পর্কে জানতে / অর্ডার করতে চাচ্ছি।'
+  )
+
   return (
-    <aside aria-label="সোশ্যাল চ্যাট">
+    <aside className={`floating-dock ${raised ? 'with-sticky' : ''}`} aria-label="তাৎক্ষণিক যোগাযোগ">
       <a
-        href="https://www.facebook.com/mangogardenbd1"
+        href={`https://wa.me/${waE164}?text=${waText}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="floating-fb"
+        className="floating-pill floating-wa"
+        aria-label={`হোয়াটসঅ্যাপে যোগাযোগ করুন: ${waDisplay}`}
+        title={`WhatsApp: ${waDisplay}`}
+        onClick={() => trackMessageAction({ channel: 'whatsapp', placement: 'floating_widget', siteSettings })}
+      >
+        <span className="floating-icon-disc floating-wa-disc">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          <span className="floating-online-dot" aria-hidden="true" />
+        </span>
+        <span className="floating-wa-label">
+          <strong>হোয়াটসঅ্যাপ</strong>
+          <small>{waDisplay}</small>
+        </span>
+      </a>
+
+      <a
+        href={fbUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="floating-pill floating-fb"
         aria-label="ফেসবুকে যোগাযোগ করুন"
         title="ম্যাংগো গার্ডেন ফেসবুক পেজ"
-        onClick={() => trackMessageAction({ channel: 'facebook', placement: 'floating_widget' })}
+        onClick={() => trackMessageAction({ channel: 'facebook', placement: 'floating_widget', siteSettings })}
       >
-        <span className="floating-fb-pulse" />
-        <div className="floating-fb-btn">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <span className="floating-icon-disc floating-fb-disc">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
           </svg>
-          <span className="floating-fb-status" />
-        </div>
-        <span className="floating-fb-text">ফেসবুকে মেসেজ দিন</span>
+          <span className="floating-online-dot" aria-hidden="true" />
+        </span>
+        <span className="floating-fb-label">ফেসবুকে মেসেজ দিন</span>
       </a>
     </aside>
   )
 }
 
+function buildCheckoutTrackingData(cartMap) {
+  const comboOption = orderOptions.find((o) => o.isCombo)
+  const kgOptions = orderOptions.filter((o) => !o.isCombo)
+
+  const comboQty = Math.min(comboOption.max, Math.max(0, Math.floor(Number(cartMap[comboOption.id] || 0))))
+  const looseEntries = kgOptions
+    .map((opt) => ({
+      opt,
+      qty: Math.min(opt.max, Math.max(0, Math.floor(Number(cartMap[opt.id] || 0))))
+    }))
+    .filter((entry) => entry.qty > 0)
+
+  const looseKg = looseEntries.reduce((sum, entry) => sum + entry.qty, 0)
+  const items = []
+
+  if (comboQty > 0) {
+    items.push({
+      id: comboOption.id,
+      name: comboOption.label,
+      price: comboOption.price,
+      quantity: comboQty,
+      unit: comboOption.unit
+    })
+  }
+
+  looseEntries.forEach(({ opt, qty }) => {
+    items.push({
+      id: opt.id,
+      name: opt.label,
+      price: opt.price,
+      quantity: qty,
+      unit: opt.unit
+    })
+  })
+
+  if (looseKg >= FREE_BONUS_MIN_KG) {
+    items.push({
+      id: 'free-jhola-500g',
+      name: FREE_BONUS_ITEM_NAME,
+      price: 0,
+      quantity: 1,
+      unit: 'প্যাক'
+    })
+  }
+
+  const subtotal =
+    comboQty * comboOption.price +
+    looseEntries.reduce((sum, entry) => sum + entry.opt.price * entry.qty, 0)
+  const hasItems = comboQty > 0 || looseKg > 0
+  const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
+  const grandTotal = subtotal + delivery
+  const totalItems = comboQty + looseKg
+  const sig = `${items.map((it) => `${it.id}:${it.quantity}`).join('|')}@${grandTotal}`
+
+  return { items, totalItems, grandTotal, sig }
+}
+
 function Storefront({ onOpenAdmin, onOrderSuccess }) {
   useReveal()
+  const { siteSettings } = useCms() || {}
   const [selected, setSelected] = useState({ 'gur-combo-990': 1 })
+  const [stickyVisible, setStickyVisible] = useState(false)
   const cartBadgeRef = useRef(null)
+  const lastCheckoutSigRef = useRef('')
+
+  useEffect(() => {
+    const onScroll = () => {
+      const order = document.getElementById('order')
+      const r = order?.getBoundingClientRect()
+      const inOrder = r && r.top < window.innerHeight && r.bottom > 0
+      setStickyVisible(window.scrollY > 450 && !inOrder)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const fireBeginCheckout = (cartMap = selected) => {
+    const { items, totalItems, grandTotal, sig } = buildCheckoutTrackingData(cartMap)
+    if (totalItems <= 0 || !items.length) return
+    if (lastCheckoutSigRef.current === sig) return
+    lastCheckoutSigRef.current = sig
+
+    trackInitiateCheckout({
+      product: {
+        id: items[0].id,
+        title: items.map((it) => `${it.name} (${toBn(it.quantity)} ${it.unit})`).join(' + '),
+        price: grandTotal
+      },
+      quantity: totalItems,
+      total: grandTotal,
+      items,
+      siteSettings
+    })
+  }
+
+  const getOptionLimit = (id) => {
+    const option = orderOptions.find((o) => o.id === id)
+    if (option?.max) return option.max
+    return option?.isCombo ? MAX_COMBO_PACKS : MAX_LOOSE_KG_PER_ITEM
+  }
 
   const toggleItem = (id) => {
+    const limit = getOptionLimit(id)
     setSelected((prev) => {
       const next = { ...prev }
       if ((next[id] || 0) > 0) delete next[id]
-      else next[id] = 1
+      else next[id] = Math.min(limit, 1)
       return next
     })
-    pulseElement(cartBadgeRef.current)
-  }
-
-  const addItem = (id) => {
-    const option = orderOptions.find((o) => o.id === id)
-    const limit = option?.max ?? MAX_LOOSE_KG_PER_ITEM
-    setSelected((prev) => ({
-      ...prev,
-      [id]: Math.min(limit, Math.max(1, prev[id] || 0))
-    }))
     pulseElement(cartBadgeRef.current)
   }
 
   const updateQty = (id, qty, max) => {
-    const option = orderOptions.find((o) => o.id === id)
-    const limit = max ?? option?.max ?? MAX_LOOSE_KG_PER_ITEM
+    const limit = Math.min(max ?? getOptionLimit(id), getOptionLimit(id))
+    const safeQty = Math.floor(Number(qty) || 0)
     setSelected((prev) => {
       const next = { ...prev }
-      if (qty <= 0) delete next[id]
-      else next[id] = Math.min(limit, qty)
+      if (safeQty <= 0) delete next[id]
+      else next[id] = Math.min(limit, safeQty)
       return next
     })
     pulseElement(cartBadgeRef.current)
   }
 
+  const openCheckoutAndTrack = () => {
+    fireBeginCheckout(selected)
+    scrollToSection('order')
+  }
+
   const pickAndScrollToOrder = (id) => {
-    addItem(id)
+    const limit = getOptionLimit(id)
+    const nextSelected = {
+      ...selected,
+      [id]: Math.min(limit, Math.max(1, selected[id] || 0))
+    }
+    setSelected(nextSelected)
+    pulseElement(cartBadgeRef.current)
+    fireBeginCheckout(nextSelected)
     scrollToSection('order')
   }
 
@@ -921,13 +1263,20 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
   const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
   const grandTotal = subtotal + delivery
   const totalItems = comboQty + looseKg
+  const { waE164, waDisplay } = resolveWhatsAppConfig(siteSettings)
 
   return (
     <>
-      <Header totalItems={totalItems} grandTotal={grandTotal} cartBadgeRef={cartBadgeRef} />
+      <Header
+        totalItems={totalItems}
+        grandTotal={grandTotal}
+        cartBadgeRef={cartBadgeRef}
+        onOpenCheckout={openCheckoutAndTrack}
+      />
       <main>
-        <Hero onPickAndOrder={pickAndScrollToOrder} />
+        <Hero onPickAndOrder={pickAndScrollToOrder} onOpenCheckout={openCheckoutAndTrack} />
         <TrustStrip />
+        <LiveProcessVideo onPickAndOrder={pickAndScrollToOrder} />
         <Combos comboQty={comboQty} onPickAndOrder={pickAndScrollToOrder} />
         <CraftAndStory />
         <CustomerReviews />
@@ -935,7 +1284,11 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
           selected={selected}
           onToggleItem={toggleItem}
           onUpdateQty={updateQty}
-          onResetCart={() => setSelected({ 'gur-combo-990': 1 })}
+          onResetCart={() => {
+            lastCheckoutSigRef.current = ''
+            setSelected({ 'gur-combo-990': 1 })
+          }}
+          onBeginCheckout={() => fireBeginCheckout(selected)}
           onOrderSuccess={onOrderSuccess}
         />
         <FAQ />
@@ -948,13 +1301,25 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
         <p>১০০% খাঁটি খেজুরের গুড় · {DELIVERY_START_NOTICE}</p>
         <div className="footer-links">
           <a
-            href="https://www.facebook.com/mangogardenbd1"
+            href={`https://wa.me/${waE164}?text=${encodeURIComponent('আসসালামু আলাইকুম ম্যাংগো গার্ডেন, খাঁটি খেজুরের গুড় সম্পর্কে জানতে / অর্ডার করতে চাচ্ছি।')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-fb-pill footer-wa-pill"
+            onClick={() => trackMessageAction({ channel: 'whatsapp', placement: 'footer', siteSettings })}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            <span>হোয়াটসঅ্যাপ: {waDisplay}</span>
+          </a>
+          <a
+            href={siteSettings?.facebook_page || 'https://www.facebook.com/mangogardenbd1'}
             target="_blank"
             rel="noopener noreferrer"
             className="footer-fb-pill"
-            onClick={() => trackMessageAction({ channel: 'facebook', placement: 'footer' })}
+            onClick={() => trackMessageAction({ channel: 'facebook', placement: 'footer', siteSettings })}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
             </svg>
             <span>ফেসবুক পেজ ভিজিট করুন</span>
@@ -986,8 +1351,14 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
         </div>
         <small>© {toBn(new Date().getFullYear())} ম্যাংগো গার্ডেন · সর্বস্বত্ব সংরক্ষিত</small>
       </footer>
-      <FloatingFacebook />
-      <StickyBar totalItems={totalItems} grandTotal={grandTotal} hasFreeShipping={comboQty > 0} />
+      <FloatingChatDock raised={stickyVisible} siteSettings={siteSettings} />
+      <StickyBar
+        show={stickyVisible}
+        totalItems={totalItems}
+        grandTotal={grandTotal}
+        hasFreeShipping={comboQty > 0}
+        onOpenCheckout={openCheckoutAndTrack}
+      />
     </>
   )
 }

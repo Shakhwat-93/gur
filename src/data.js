@@ -4,12 +4,17 @@ export const DELIVERY_START_NOTICE = '১৫ নভেম্বর থেকে 
 export const FREE_BONUS_MIN_KG = 3
 export const FREE_BONUS_ITEM_NAME = '৫০০ গ্রাম ঝোলা গুড় (ফ্রি অফার)'
 export const MAX_LOOSE_KG_PER_ITEM = 5
+export const MAX_COMBO_PACKS = 5
+export const WHATSAPP_DISPLAY = '01318-007554'
+export const WHATSAPP_E164 = '8801318007554'
 
 export const BRAND_IMAGES = {
   logo: '/img/file_00000000bb8c8208935485c59b7b5c83.png',
   heroPatali: '/img/file_000000007a3482088e44b1347e5afa94.png',
   combo990: '/img/file_000000008a508211871f2da956f12e9c.png',
   makerStory: '/img/file_00000000ba2c8208b0aa4b8c2b4fc3c3.png',
+  craftVideo: '/img/lv_0_20261109191525.mp4',
+  craftVideoPoster: '/img/lv_0_poster.jpg',
 }
 
 export const combos = [
@@ -260,7 +265,7 @@ export const orderOptions = [
     price: c.price,
     freeDelivery: true,
     min: 1,
-    max: 10,
+    max: MAX_COMBO_PACKS,
     unit: 'প্যাকেজ',
     image: c.image,
     isCombo: true,
