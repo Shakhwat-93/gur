@@ -4,6 +4,51 @@ import QrCodeRenderer from './QrCodeRenderer';
 import { getEffectiveOrderQty } from '../../lib/orderHelper';
 import './thermalPrint.css';
 
+export const THERMAL_PAPER_SIZES = {
+  '100x100': {
+    id: '100x100',
+    name: '4" × 4" (100mm × 100mm)',
+    label: '4" × 4" Roll (100×100mm)',
+    shortName: '4" × 4"',
+    widthMm: 100,
+    heightMm: 100,
+    maxItemsSinglePage: 8,
+    description: '4 ইঞ্চি বাই 4 ইঞ্চি পেপার রোল (স্কয়ার থার্মাল স্টিকার)'
+  },
+  '100x150': {
+    id: '100x150',
+    name: '150mm × 100mm / 4" × 6" (Courier Portrait)',
+    label: '150mm × 100mm (4" × 6")',
+    shortName: '150×100mm',
+    widthMm: 100,
+    heightMm: 150,
+    maxItemsSinglePage: 12,
+    description: '150mm × 100mm লম্বা কুরিয়ার শিপিং লেবেল'
+  },
+  '150x100': {
+    id: '150x100',
+    name: '150mm × 100mm (Landscape 6" × 4")',
+    label: '150×100mm Landscape',
+    shortName: '150×100mm L',
+    widthMm: 150,
+    heightMm: 100,
+    maxItemsSinglePage: 8,
+    description: '150mm চওড়া ল্যান্ডস্কেপ থার্মাল লেবেল'
+  },
+  '75x100': {
+    id: '75x100',
+    name: '75mm × 100mm (3" × 4" Compact)',
+    label: '75mm × 100mm (Compact)',
+    shortName: '75×100mm',
+    widthMm: 75,
+    heightMm: 100,
+    maxItemsSinglePage: 5,
+    description: 'ছোট ৩ ইঞ্চি থার্মাল পেপার রোল'
+  }
+};
+
+export const DEFAULT_PAPER_SIZE = '100x100';
+
 /**
  * Normalizes and extracts structured items for an order.
  * Handles both rich JSON items array and legacy order schema fields.
@@ -45,29 +90,35 @@ export function getOrderItems(order) {
 }
 
 /**
- * Splits items into pages if an order has more products than fits on one 100mm label.
- * - Single page max: 4 items
- * - Multi-page: Page 1 gets 3 items + continuation notice; page 2 gets remaining items
+ * Splits items into pages if an order has more products than fits on one sticker.
+ * Dynamically adjusts max items per sticker based on selected paper size:
+ * - 4" × 4" (100mm × 100mm): up to 8 items on 1 page without pagination
+ * - 150mm × 100mm (100×150mm): up to 12 items on 1 page
+ * - 75mm × 100mm: up to 5 items on 1 page
  */
-export function chunkOrderItems(items) {
+export function chunkOrderItems(items, paperSizeId = DEFAULT_PAPER_SIZE) {
   if (!items || items.length === 0) return [[]];
-  if (items.length <= 4) return [items];
+  const sizeConfig = THERMAL_PAPER_SIZES[paperSizeId] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
+  const maxItems = sizeConfig.maxItemsSinglePage || 8;
+
+  if (items.length <= maxItems) {
+    return [items];
+  }
 
   const pages = [];
-  // First page: 3 items
-  pages.push(items.slice(0, 3));
+  const firstPageLimit = maxItems - 1;
+  pages.push(items.slice(0, firstPageLimit));
 
-  // Subsequent pages: up to 4 items each
-  let cursor = 3;
+  let cursor = firstPageLimit;
   while (cursor < items.length) {
-    pages.push(items.slice(cursor, cursor + 4));
-    cursor += 4;
+    pages.push(items.slice(cursor, cursor + maxItems));
+    cursor += maxItems;
   }
   return pages;
 }
 
 /**
- * Single 75mm × 100mm Direct Thermal Sticker Page
+ * Single Direct Thermal Sticker Page
  */
 export function SingleThermalStickerPage({
   order,
@@ -77,9 +128,19 @@ export function SingleThermalStickerPage({
   totalPages,
   copyIndex = 1,
   totalCopies = 1,
+  paperSize = DEFAULT_PAPER_SIZE,
   isOnScreen = false
 }) {
   if (!order) return null;
+
+  const sizeConfig = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
+  const itemCount = pageItems.length;
+  const densityClass =
+    itemCount <= 3
+      ? 'ts-density-spacious'
+      : itemCount <= 5
+      ? 'ts-density-medium'
+      : 'ts-density-compact';
 
   const storeName = siteSettings?.store_name || 'ম্যাংগো গার্ডেন';
   const storeLogo = siteSettings?.logo_url || '/img/logo.jpg';
@@ -130,7 +191,11 @@ export function SingleThermalStickerPage({
   const qrTrackingUrl = `https://mangogardenbd.com/#order-track?id=${encodeURIComponent(orderId)}`;
 
   return (
-    <div className={`thermal-sticker-page ${isOnScreen ? 'on-screen' : ''}`}>
+    <div
+      className={`thermal-sticker-page size-${paperSize} ${densityClass} ${isOnScreen ? 'on-screen' : ''}`}
+      data-paper-size={paperSize}
+      data-items-count={itemCount}
+    >
       {/* 1. HEADER SECTION */}
       <div className="ts-header">
         <div className="ts-brand-col">
@@ -282,12 +347,13 @@ export default function ThermalSticker({
   order,
   siteSettings,
   copies = 1,
+  paperSize = DEFAULT_PAPER_SIZE,
   isOnScreen = false
 }) {
   if (!order) return null;
 
   const items = getOrderItems(order);
-  const itemPages = chunkOrderItems(items);
+  const itemPages = chunkOrderItems(items, paperSize);
   const totalPages = itemPages.length;
 
   const renderedPages = [];
@@ -296,7 +362,7 @@ export default function ThermalSticker({
     itemPages.forEach((pageItems, pageIdx) => {
       renderedPages.push(
         <SingleThermalStickerPage
-          key={`ord-${order.order_id || order.id}-copy-${c}-pg-${pageIdx}`}
+          key={`ord-${order.order_id || order.id}-copy-${c}-pg-${pageIdx}-${paperSize}`}
           order={order}
           siteSettings={siteSettings}
           pageItems={pageItems}
@@ -304,6 +370,7 @@ export default function ThermalSticker({
           totalPages={totalPages}
           copyIndex={c}
           totalCopies={copies}
+          paperSize={paperSize}
           isOnScreen={isOnScreen}
         />
       );

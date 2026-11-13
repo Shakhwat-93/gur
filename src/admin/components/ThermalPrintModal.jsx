@@ -9,21 +9,28 @@ import {
   CheckCircle2,
   RotateCcw,
   SlidersHorizontal,
-  Layers
+  Layers,
+  FileText
 } from 'lucide-react';
-import ThermalSticker, { getOrderItems, chunkOrderItems } from './ThermalSticker';
+import ThermalSticker, {
+  getOrderItems,
+  chunkOrderItems,
+  THERMAL_PAPER_SIZES,
+  DEFAULT_PAPER_SIZE
+} from './ThermalSticker';
 import { isOrderPrinted, markOrdersAsPrinted } from '../lib/thermalPrintStorage';
 import './thermalPrint.css';
 
 /**
- * Enterprise 75mm × 100mm Direct Thermal Order Sticker Print Modal
+ * Enterprise Direct Thermal Order Sticker Print Modal
  * Supports:
- * - Single order printing
- * - Bulk order printing
+ * - 4" × 4" (100mm × 100mm) Paper Roll [Default]
+ * - 150mm × 100mm (Courier 4" × 6" / Landscape)
+ * - 75mm × 100mm (Compact)
+ * - Single & Bulk order printing
  * - Custom copy count
- * - Live physical 75mm × 100mm visual preview
- * - Thermal printer driver configuration guide
- * - Multi-item continuation label pagination
+ * - 5-8 items clean printing with zero text clipping
+ * - Live physical visual preview
  * - Automatic printed / reprint state tracking
  */
 export default function ThermalPrintModal({
@@ -39,6 +46,32 @@ export default function ThermalPrintModal({
   const [showGuide, setShowGuide] = useState(false);
   const [justPrinted, setJustPrinted] = useState(false);
 
+  // Paper Size state with localStorage persistence
+  const [paperSize, setPaperSize] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mg_thermal_paper_size');
+      return saved && THERMAL_PAPER_SIZES[saved] ? saved : DEFAULT_PAPER_SIZE;
+    } catch (e) {
+      return DEFAULT_PAPER_SIZE;
+    }
+  });
+
+  // Dynamically inject @page dimensions when paper size changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('mg_thermal_paper_size', paperSize);
+    } catch (e) {}
+
+    const sizeCfg = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
+    let styleEl = document.getElementById('thermal-dynamic-page-style');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'thermal-dynamic-page-style';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `@page { size: ${sizeCfg.widthMm}mm ${sizeCfg.heightMm}mm; margin: 0; }`;
+  }, [paperSize]);
+
   // Normalize orders array
   const orderList = Array.isArray(orders) ? orders.filter(Boolean) : [];
 
@@ -53,10 +86,10 @@ export default function ThermalPrintModal({
   const orderId = String(currentOrder.order_id || currentOrder.id);
   const isReprint = isOrderPrinted(orderId);
 
-  // Calculate total physical stickers that will print
+  // Calculate total physical stickers that will print for selected paper size
   const totalStickerCount = orderList.reduce((acc, ord) => {
     const items = getOrderItems(ord);
-    const pages = chunkOrderItems(items).length;
+    const pages = chunkOrderItems(items, paperSize).length;
     return acc + pages * copies;
   }, 0);
 
@@ -75,6 +108,8 @@ export default function ThermalPrintModal({
     }, 120);
   };
 
+  const activeSizeConfig = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
+
   return (
     <div
       className="adm-backdrop"
@@ -86,7 +121,7 @@ export default function ThermalPrintModal({
       <div
         className="adm-modal-sheet"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '820px', width: '95%' }}
+        style={{ maxWidth: '860px', width: '95%' }}
       >
         {/* Modal Header */}
         <div className="adm-modal-header" style={{ padding: '14px 20px' }}>
@@ -106,7 +141,7 @@ export default function ThermalPrintModal({
                 <Printer size={18} />
               </div>
               <h3 className="adm-modal-title" style={{ fontSize: '18px', margin: 0 }}>
-                75mm × 100mm Thermal Sticker Print
+                Thermal Sticker Print ({activeSizeConfig.shortName})
               </h3>
               {orderList.length > 1 ? (
                 <span className="adm-badge adm-badge-info" style={{ fontWeight: 800 }}>
@@ -125,7 +160,7 @@ export default function ThermalPrintModal({
               )}
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '12.5px', color: '#64748b' }}>
-              Direct Thermal (DT) 500-label roll format · High-contrast monochrome layout
+              Direct Thermal (DT) Roll · 5–8 Items Multi-Product Ready · Zero Text Cutoff
             </p>
           </div>
 
@@ -141,6 +176,58 @@ export default function ThermalPrintModal({
 
         {/* Modal Body & Settings Toolbar */}
         <div className="adm-modal-body" style={{ padding: '16px 20px' }}>
+          {/* Paper Size Selection Bar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              padding: '10px 14px',
+              background: '#f8fafc',
+              border: '1.5px solid #e2e8f0',
+              borderRadius: '12px',
+              marginBottom: '12px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={16} color="#0f172a" />
+              <span style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                Paper Roll Size / পেপার সাইজ:
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              {Object.values(THERMAL_PAPER_SIZES).map((sz) => {
+                const isSelected = paperSize === sz.id;
+                return (
+                  <button
+                    key={sz.id}
+                    type="button"
+                    onClick={() => setPaperSize(sz.id)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '12.5px',
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: 'pointer',
+                      border: isSelected ? '1.5px solid #000000' : '1px solid #cbd5e1',
+                      background: isSelected ? '#000000' : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#334155',
+                      boxShadow: isSelected ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title={sz.description}
+                  >
+                    {sz.id === '100x100' ? '⭐ ' : ''}
+                    {sz.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Controls Bar: Copies, View Mode, Navigation */}
           <div
             style={{
@@ -293,12 +380,12 @@ export default function ThermalPrintModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
                 <Info size={16} color="#0284c7" />
                 <strong style={{ color: '#0f172a', fontSize: '13px' }}>
-                  Recommended Thermal Printer Settings (Xprinter / Zebra / Gprinter):
+                  Recommended Thermal Printer Settings (Xprinter / Zebra / Gprinter / Rongta):
                 </strong>
               </div>
               <ul style={{ margin: 0, paddingLeft: '20px', display: 'grid', gap: '4px' }}>
                 <li>
-                  <b>Paper Size / Label Size:</b> Select <code>75mm × 100mm</code> (or <code>3" × 4"</code> / <code>USER 75x100</code>).
+                  <b>Paper Size:</b> For 4" × 4" roll, select <code>100mm × 100mm</code> (or <code>4" × 4"</code>). For 150mm×100mm, select <code>100mm × 150mm</code> (4" × 6").
                 </li>
                 <li>
                   <b>Margins:</b> Set to <b>None</b> (or <code>0 mm</code>) in the browser print dialog.
@@ -340,7 +427,7 @@ export default function ThermalPrintModal({
             </div>
           )}
 
-          {/* Physical 75mm x 100mm Sticker Preview Canvas */}
+          {/* Physical Sticker Preview Canvas */}
           <div className="thermal-preview-container">
             {viewMode === 'all' && orderList.length > 1 ? (
               orderList.map((ord, idx) => (
@@ -352,6 +439,7 @@ export default function ThermalPrintModal({
                     order={ord}
                     siteSettings={siteSettings}
                     copies={copies}
+                    paperSize={paperSize}
                     isOnScreen={true}
                   />
                 </div>
@@ -366,6 +454,7 @@ export default function ThermalPrintModal({
                   order={currentOrder}
                   siteSettings={siteSettings}
                   copies={copies}
+                  paperSize={paperSize}
                   isOnScreen={true}
                 />
               </div>
@@ -386,7 +475,7 @@ export default function ThermalPrintModal({
             }}
           >
             <div style={{ fontSize: '13px', color: '#475569' }}>
-              <strong>Total Output:</strong> {totalStickerCount} Sticker(s) ({orderList.length} Order{orderList.length > 1 ? 's' : ''} × {copies} Cop{copies > 1 ? 'ies' : 'y'})
+              <strong>Total Output:</strong> {totalStickerCount} Sticker(s) ({orderList.length} Order{orderList.length > 1 ? 's' : ''} × {copies} Cop{copies > 1 ? 'ies' : 'y'}) · <b>{activeSizeConfig.shortName}</b>
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -434,6 +523,7 @@ export default function ThermalPrintModal({
             order={ord}
             siteSettings={siteSettings}
             copies={copies}
+            paperSize={paperSize}
             isOnScreen={false}
           />
         ))}
