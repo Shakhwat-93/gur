@@ -7,11 +7,12 @@ import './thermalPrint.css';
 export const THERMAL_PAPER_SIZES = {
   '100x100': {
     id: '100x100',
-    name: '4" × 4" (100mm × 100mm)',
-    label: '4" × 4" Roll (100×100mm)',
+    name: '4" × 4" (101.6mm × 101.6mm)',
+    label: '4" × 4" Roll (101.6×101.6mm)',
     shortName: '4" × 4"',
-    widthMm: 100,
-    heightMm: 100,
+    widthMm: 101.6,
+    heightMm: 101.6,
+    cssSize: '4in 4in',
     maxItemsSinglePage: 8,
     description: '4 ইঞ্চি বাই 4 ইঞ্চি পেপার রোল (স্কয়ার থার্মাল স্টিকার)'
   },
@@ -22,6 +23,7 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '150×100mm',
     widthMm: 100,
     heightMm: 150,
+    cssSize: '100mm 150mm',
     maxItemsSinglePage: 12,
     description: '150mm × 100mm লম্বা কুরিয়ার শিপিং লেবেল'
   },
@@ -32,6 +34,7 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '150×100mm L',
     widthMm: 150,
     heightMm: 100,
+    cssSize: '150mm 100mm',
     maxItemsSinglePage: 8,
     description: '150mm চওড়া ল্যান্ডস্কেপ থার্মাল লেবেল'
   },
@@ -42,6 +45,7 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '75×100mm',
     widthMm: 75,
     heightMm: 100,
+    cssSize: '75mm 100mm',
     maxItemsSinglePage: 5,
     description: 'ছোট ৩ ইঞ্চি থার্মাল পেপার রোল'
   }
@@ -352,13 +356,17 @@ export default function ThermalSticker({
 }) {
   if (!order) return null;
 
+  // Strictly validate copies as positive integer (defaults to 1, max 50)
+  const rawCopies = parseInt(copies, 10);
+  const validCopies = Number.isInteger(rawCopies) && rawCopies >= 1 ? Math.min(50, rawCopies) : 1;
+
   const items = getOrderItems(order);
   const itemPages = chunkOrderItems(items, paperSize);
   const totalPages = itemPages.length;
 
   const renderedPages = [];
 
-  for (let c = 1; c <= copies; c++) {
+  for (let c = 1; c <= validCopies; c++) {
     itemPages.forEach((pageItems, pageIdx) => {
       renderedPages.push(
         <SingleThermalStickerPage
@@ -369,7 +377,7 @@ export default function ThermalSticker({
           pageIndex={pageIdx}
           totalPages={totalPages}
           copyIndex={c}
-          totalCopies={copies}
+          totalCopies={validCopies}
           paperSize={paperSize}
           isOnScreen={isOnScreen}
         />

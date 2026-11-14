@@ -8,10 +8,16 @@
    High-Contrast Monochrome Layout for Direct Thermal (DT) Label Printers
    ============================================================================== */
 
-/* --- Default Page Media Rule for Thermal Printers (dynamically overrideable) --- */
+/* --- Default Page Media Rule for 4" × 4" Thermal Printers (dynamically overrideable) --- */
 @page {
-  size: 100mm 100mm;
+  size: 4in 4in;
   margin: 0;
+}
+
+/* Off-screen Portal Print Container (hidden on screen) */
+#thermal-print-root,
+#thermal-print-mount {
+  display: none;
 }
 
 /* ==============================================================================
@@ -491,99 +497,136 @@
 
 /* ==============================================================================
    NATIVE PRINT MEDIA STYLES (@media print)
-   Supports 4"×4" (100mm×100mm), 150mm×100mm, and 75mm×100mm Rolls
-   Strictly Enforces Thermal Page Boundary with Zero Leakage
+   Supports:
+   - 4" × 4" (101.6mm × 101.6mm) Paper Roll [Primary / Default]
+   - 150mm × 100mm Courier Portrait (4" × 6")
+   - 150mm × 100mm Landscape
+   - 75mm × 100mm Compact Roll
+   Zero Top-Margin Gap · Strict 4in × 4in Edge-to-Edge Print Alignment
    ============================================================================== */
 
 @media print {
-  /* Hide all elements on page except the dedicated print mount */
-  body * {
-    visibility: hidden;
-  }
-
-  #thermal-print-mount,
-  #thermal-print-mount * {
-    visibility: visible;
-  }
-
-  #thermal-print-mount {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: auto !important;
-    max-width: 100% !important;
+  /* 1. Complete suppression of all screen app elements from layout */
+  #root,
+  .adm-backdrop,
+  .adm-modal-sheet,
+  .adm-container,
+  .thermal-preview-container,
+  .no-print,
+  .no-screen {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: transparent !important;
+    border: none !important;
+    overflow: hidden !important;
   }
 
-  /* Base print sticker styling */
+  /* 2. Global html & body reset to zero margins and exact sticker size */
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 4in !important;
+    height: 4in !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 3. Off-screen Portal Print Container (direct child of body) */
+  #thermal-print-root {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 4in !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    z-index: 999999 !important;
+  }
+
+  /* Fallback if legacy mount exists */
+  #thermal-print-mount {
+    display: none !important;
+  }
+
+  /* 4. Base thermal sticker page container */
   .thermal-sticker-page {
-    page-break-after: always !important;
-    break-after: page !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
     margin: 0 !important;
     border: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* 1. Default & 4" × 4" (100mm × 100mm) Roll */
+  /* --- 4A. Default 4" × 4" (101.6mm × 101.6mm) Paper Roll --- */
   .thermal-sticker-page,
   .thermal-sticker-page.size-100x100 {
-    width: 100mm !important;
-    min-width: 100mm !important;
-    max-width: 100mm !important;
-    height: 100mm !important;
-    min-height: 100mm !important;
-    max-height: 100mm !important;
-    padding: 2.8mm 3.4mm 2.2mm 3.4mm !important;
+    width: 4in !important;
+    height: 4in !important;
+    min-width: 4in !important;
+    max-width: 4in !important;
+    min-height: 4in !important;
+    max-height: 4in !important;
+    padding: 2.2mm 3.2mm 1.8mm 3.2mm !important;
   }
 
-  /* 2. 150mm × 100mm Courier Portrait (100mm × 150mm) */
+  /* --- 4B. 150mm × 100mm Courier Portrait (100mm × 150mm / 4" × 6") --- */
   .thermal-sticker-page.size-100x150 {
     width: 100mm !important;
+    height: 150mm !important;
     min-width: 100mm !important;
     max-width: 100mm !important;
-    height: 150mm !important;
     min-height: 150mm !important;
     max-height: 150mm !important;
     padding: 3.5mm 4mm 3mm 4mm !important;
   }
 
-  /* 3. 150mm × 100mm Landscape */
+  /* --- 4C. 150mm × 100mm Landscape --- */
   .thermal-sticker-page.size-150x100 {
     width: 150mm !important;
+    height: 100mm !important;
     min-width: 150mm !important;
     max-width: 150mm !important;
-    height: 100mm !important;
     min-height: 100mm !important;
     max-height: 100mm !important;
     padding: 2.8mm 4mm 2.2mm 4mm !important;
   }
 
-  /* 4. 75mm × 100mm Compact */
+  /* --- 4D. 75mm × 100mm Compact Roll --- */
   .thermal-sticker-page.size-75x100 {
     width: 75mm !important;
+    height: 100mm !important;
     min-width: 75mm !important;
     max-width: 75mm !important;
-    height: 100mm !important;
     min-height: 100mm !important;
     max-height: 100mm !important;
     padding: 2.6mm 3mm 2mm 3mm !important;
   }
 
+  /* 5. Suppress page break on the very last sticker to eliminate trailing blank page */
   .thermal-sticker-page:last-child {
     page-break-after: auto !important;
     break-after: auto !important;
-  }
-
-  .no-print {
-    display: none !important;
   }
 }
