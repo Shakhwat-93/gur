@@ -1,5 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { ShieldCheck, Truck, Gift, CalendarCheck, Check, ShoppingBag, Sparkles, ArrowRight, Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import {
+  Truck,
+  Gift,
+  Phone,
+  Play,
+  Pause,
+  X,
+  ArrowRight,
+  Check,
+  ShoppingBag,
+  ShieldCheck,
+  ChevronUp
+} from 'lucide-react'
 import {
   BRAND_IMAGES,
   DELIVERY_CHARGE,
@@ -11,7 +23,7 @@ import {
   WHATSAPP_DISPLAY,
   WHATSAPP_E164,
   combos,
-  craftSteps,
+  gurPrices,
   orderOptions
 } from './data.js'
 import { submitOrder } from './supabase.js'
@@ -19,94 +31,83 @@ import { CmsProvider, useCms } from './context/CmsContext.jsx'
 import AdminApp from './admin/AdminApp.jsx'
 import OrderSuccessPage from './pages/OrderSuccessPage.jsx'
 import CustomerReviews from './components/CustomerReviews.jsx'
+import {
+  HeroSunburst,
+  MenuHeritageIllustration,
+  DeliveryHeritageIllustration,
+  SeasonStampBadge,
+  SectionDivider,
+  HeritageShopSeal,
+  WavyTopEdge
+} from './components/HeritageSvgs.jsx'
 import { fetchClientIp, trackInitiateCheckout, trackMessageAction } from './lib/tracking.js'
 import { normalizeBdPhone, isValidBdPhone } from './lib/phoneNormalizer.js'
-import { mountHeroChoreography, observeStaggerGroup, observeSvgDraw, pulseElement, prefersReducedMotion } from './lib/motion.js'
 
-/* ---------- helpers ---------- */
+/* ---------- Helpers & Bengali Numerals ---------- */
 const bnDigits = '০১২৩৪৫৬৭৮৯'
 const toBn = (n) => String(n).replace(/\d/g, (d) => bnDigits[d])
 const taka = (n) => toBn(Number(n).toLocaleString('en-IN'))
-
-function useReveal() {
-  useEffect(() => {
-    const els = document.querySelectorAll('.reveal')
-    const io = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add('in')
-            e.target.setAttribute('data-revealed', 'true')
-            io.unobserve(e.target)
-          }
-        }),
-      { threshold: 0.08, rootMargin: '0px 0px 80px 0px' }
-    )
-    els.forEach((el) => io.observe(el))
-    return () => io.disconnect()
-  }, [])
-}
 
 const scrollToSection = (id) => {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 }
 
-/* ---------- sections ---------- */
-function Header({ totalItems, grandTotal, cartBadgeRef, onOpenCheckout }) {
+function resolveWhatsAppConfig(siteSettings) {
+  const rawDigits = String(siteSettings?.whatsapp_number || '').replace(/[^0-9]/g, '')
+  const isPlaceholder = !rawDigits || /^880?1700000000$/.test(rawDigits) || /000000/.test(rawDigits)
+  if (isPlaceholder) {
+    return { waE164: WHATSAPP_E164, waDisplay: WHATSAPP_DISPLAY }
+  }
+  const waE164 = rawDigits.startsWith('880')
+    ? rawDigits
+    : rawDigits.startsWith('0')
+    ? `88${rawDigits}`
+    : rawDigits
+  const localDigits = waE164.startsWith('880') ? `0${waE164.slice(3)}` : waE164
+  const waDisplay =
+    localDigits.length === 11 ? `${localDigits.slice(0, 5)}-${localDigits.slice(5)}` : WHATSAPP_DISPLAY
+  return { waE164, waDisplay }
+}
+
+/* ==========================================================================
+   1. HERITAGE HEADER & TOP NOTICE STRIP
+   ========================================================================== */
+function HeritageHeader({ totalItems, grandTotal, onOpenCheckout, siteSettings }) {
+  const { waE164, waDisplay } = resolveWhatsAppConfig(siteSettings)
+
   return (
     <>
-      <div className="top-strip">
+      <div className="top-notice-strip">
         📦 {DELIVERY_START_NOTICE} · সারা বাংলাদেশে ক্যাশ অন ডেলিভারি
       </div>
-      <header className="header">
-        <div className="container header-inner">
-          <a href="#top" className="brand">
-            <img src={BRAND_IMAGES.logo} alt="ম্যাংগো গার্ডেন লোগো" className="brand-logo" />
-            <div className="brand-info">
-              <span className="brand-title">ম্যাংগো গার্ডেন</span>
-              <span className="brand-tag">খাঁটি খেজুরের গুড়</span>
+      <header className="heritage-header">
+        <div className="container heritage-header-inner">
+          <a href="#top" className="header-brand" aria-label="ম্যাংগো গার্ডেন হোম পেজ">
+            <div className="brand-emblem-disc">
+              <img src={BRAND_IMAGES.logo} alt="ম্যাংগো গার্ডেন লোগো" />
+            </div>
+            <div className="header-brand-text">
+              <span className="header-brand-title">ম্যাংগো গার্ডেন</span>
+              <span className="header-brand-subtitle">শীতের খাঁটি খেজুরের গুড়</span>
             </div>
           </a>
 
-          <nav className="nav-links" aria-label="প্রাথমিক নেভিগেশন">
-            <a href="#combo">৯৯০৳ কম্বো</a>
-            <a href="#craft">প্রস্তুতি</a>
-            <a href="#reviews">রিভিউ</a>
+          <div className="header-right-actions">
             <a
-              href="#order"
-              onClick={(e) => {
-                if (onOpenCheckout) {
-                  e.preventDefault()
-                  onOpenCheckout()
-                }
-              }}
+              href={`tel:${waE164.startsWith('88') ? waE164.slice(2) : waE164}`}
+              className="header-phone-btn"
+              aria-label={`কল করুন: ${waDisplay}`}
             >
-              প্যাকেজ ও অর্ডার
-            </a>
-          </nav>
-
-          <div className="header-actions">
-            <a
-              href="https://www.facebook.com/mangogardenbd1"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="header-fb-btn"
-              aria-label="ম্যাংগো গার্ডেন ফেসবুক পেজ"
-              title="আমাদের ফেসবুক পেজ"
-              onClick={() => trackMessageAction({ channel: 'facebook', placement: 'header' })}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
+              <Phone size={14} />
+              <span>কল করুন</span>
             </a>
             <button
               type="button"
-              ref={cartBadgeRef}
-              className="header-cart-btn"
+              className="header-order-pill"
               onClick={() => (onOpenCheckout ? onOpenCheckout() : scrollToSection('order'))}
             >
-              <ShoppingBag size={16} />
-              <span>অর্ডার ({toBn(totalItems)}) · ৳{taka(grandTotal)}</span>
+              <ShoppingBag size={14} />
+              <span>অর্ডার {totalItems > 0 ? `(${toBn(totalItems)})` : ''}</span>
             </button>
           </div>
         </div>
@@ -115,488 +116,288 @@ function Header({ totalItems, grandTotal, cartBadgeRef, onOpenCheckout }) {
   )
 }
 
-function Hero({ onPickAndOrder, onOpenCheckout }) {
-  const heroRef = useRef(null)
-
-  useEffect(() => {
-    return mountHeroChoreography(heroRef.current)
-  }, [])
-
+/* ==========================================================================
+   2. SECTION 1: HERO (§4)
+   ========================================================================== */
+function HeroSection({ onPickAndOrder }) {
   return (
-    <section className="hero-section" id="top" ref={heroRef}>
-      {/* Botanical Palm & Nectar SVG Linework (animated by Anime.js createDrawable) */}
-      <svg className="hero-botanical-svg" viewBox="0 0 1440 620" fill="none" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <path
-          className="hero-botanical-path"
-          d="M-40 520 C 210 380, 420 560, 740 310 C 980 120, 1210 210, 1480 70"
-          stroke="url(#heroGoldLine)"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-        <path
-          className="hero-botanical-path"
-          d="M960 640 C 1020 430, 1180 280, 1440 240"
-          stroke="url(#heroGoldLine)"
-          strokeWidth="1.5"
-          strokeDasharray="6 6"
-        />
-        <defs>
-          <linearGradient id="heroGoldLine" x1="0" y1="0" x2="1440" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#E9B44C" stopOpacity="0.1" />
-            <stop offset="50%" stopColor="#E9B44C" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#D9822B" stopOpacity="0.2" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      <div className="container hero-grid">
-        <div className="hero-copy">
-          <span className="hero-pill">
-            <Sparkles size={14} /> ম্যাংগো গার্ডেন · শীতের খাঁটি খেজুর গুড়
-          </span>
-          <h1 className="hero-stagger">
-            গাছির খাঁটি রসে তৈরি <span className="hero-gold">আসল খেজুরের গুড়</span>
-          </h1>
-          <p className="hero-lead hero-stagger">
-            মাত্র <b>৯৯০ টাকায়</b> পাচ্ছেন ৫ ধরনের খাঁটি খেজুরের গুড় (মোট ২.৫ কেজি) — সাথে হোম ডেলিভারি চার্জ একেবারেই ফ্রি!
-          </p>
-
-          <div className="hero-highlights hero-stagger">
-            <span className="hero-chip">🪔 ৯৯০৳ কম্বো (২.৫ কেজি)</span>
-            <span className="hero-chip palm">🚚 ফ্রি হোম ডেলিভারি</span>
-            <span className="hero-chip">💠 যেকোনো তিন কেজি গুড় নিলে ৫০০ গ্রাম ঝোলা গুড় ফ্রি</span>
-          </div>
-
-          <div className="hero-ctas hero-stagger">
-            <button type="button" className="btn btn-lg shine" onClick={() => onPickAndOrder('gur-combo-990')}>
-              ৯৯০৳ কম্বো অর্ডার করুন <ArrowRight size={18} />
-            </button>
-            <a
-              href="#order"
-              className="btn btn-outline-gold btn-lg"
-              onClick={(e) => {
-                if (onOpenCheckout) {
-                  e.preventDefault()
-                  onOpenCheckout()
-                }
-              }}
-            >
-              প্রতি কেজির তালিকা ও অর্ডার
-            </a>
-          </div>
+    <section className="hero-section" id="top">
+      <div className="container">
+        {/* Emblem Logo */}
+        <div className="hero-brand-emblem" aria-hidden="true">
+          <img src={BRAND_IMAGES.logo} alt="ম্যাংগো গার্ডেন" />
         </div>
 
-        <div className="hero-visual-stage">
-          <div className="hero-arch-card">
+        {/* Small Intro Line */}
+        <p className="hero-intro-lines">
+          ম্যাংগো গার্ডেন · শীতের খাঁটি খেজুর গুড়<br />
+          চিনি ও কেমিক্যালমুক্ত শতভাগ বিশুদ্ধতার নিশ্চয়তা
+        </p>
+
+        {/* Headline in Bengali Calligraphy */}
+        <h1 className="hero-main-title">
+          গাছির খাঁটি রসে তৈরি<br />
+          আসল খেজুরের গুড়
+        </h1>
+
+        {/* Hero Visual Card */}
+        <div className="hero-visual-card">
+          <div className="hero-card-stage">
+            {/* Saffron Sunburst Background */}
+            <div className="hero-sunburst-bg">
+              <HeroSunburst />
+            </div>
+
+            {/* Season Stamp Overlapping Top-Left */}
+            <SeasonStampBadge line1="নতুন মৌসুমে" line2="শীত ১৪৩১" />
+
+            {/* Main Subject Photo */}
             <img
               src={BRAND_IMAGES.heroPatali}
-              alt="খেজুর বাগানের সামনে খাঁটি গোল পাটালি গুড়"
+              alt="ঐতিহ্যবাহী খাঁটি খেজুরের পাটালি গুড়"
+              className="hero-subject-img"
               loading="eager"
-              decoding="async"
+              fetchpriority="high"
             />
-            <div className="hero-arch-scrim" />
-          </div>
 
-          <div className="hero-date-stamp hero-float-card">
-            📦 {DELIVERY_START_NOTICE}
-          </div>
-
-          <a href="#combo" className="hero-combo-floating-glass hero-float-card" aria-label="৯৯০ টাকার ৫ ধরনের গুড় কম্বো দেখুন">
-            <div className="hero-glass-left">
-              <div className="hero-swatch-stack">
-                <img src={BRAND_IMAGES.combo990} alt="৫ ধরনের গুড় কম্বো" />
-                <img src="/img/IMG_8df5a126-73c7-4a1b-b32d-5c8caf3d6f24.jpg.jpeg" alt="লালি ও ঝোলা গুড়" />
-              </div>
-              <div className="hero-glass-meta">
-                <strong>৫ ধরনের গুড় কম্বো (২.৫ কেজি)</strong>
-                <small>✓ ফ্রি হোম ডেলিভারি</small>
-              </div>
+            {/* Secondary Circular Image Overlapping Bottom-Right */}
+            <div className="hero-secondary-badge" title="৫ ধরনের গুড় কম্বো প্যাকেজ">
+              <img src={BRAND_IMAGES.combo990} alt="কম্বো গুড় প্রিভিউ" />
             </div>
-            <span className="hero-glass-price">৳{taka(990)}</span>
-          </a>
+          </div>
+
+          {/* Hero Bottom Joined Bar */}
+          <div className="hero-bottom-bar">
+            <div className="hero-bar-info">
+              <strong>ক্যাশ অন ডেলিভারি</strong>
+              <small>৯৯০৳ কম্বোতে ফ্রি ডেলিভারি · {DELIVERY_START_NOTICE}</small>
+            </div>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => onPickAndOrder('gur-combo-990')}
+            >
+              <span>অর্ডার করুন</span>
+              <span className="btn-arrow-circle" aria-hidden="true">→</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
   )
 }
 
-function TrustStrip() {
-  const pillars = [
-    { icon: ShieldCheck, title: '১০০% খাঁটি রস', desc: 'চিনি ও কেমিক্যালমুক্ত নিশ্চয়তা' },
-    { icon: Truck, title: 'ফ্রি ডেলিভারি', desc: '৯৯০৳ কম্বোতে কোনো চার্জ নেই' },
-    { icon: Gift, title: '৩ কেজিতে ফ্রি গিফট', desc: 'যেকোনো তিন কেজি গুড় নিলে ৫০০ গ্রাম ঝোলা গুড় ফ্রি' },
-    { icon: CalendarCheck, title: '১৫ নভেম্বর ডেলিভারি', desc: 'ইনশাআল্লাহ · ক্যাশ অন ডেলিভারি' },
-  ]
+/* ==========================================================================
+   3. SECTION 2: MENU INTRO + ILLUSTRATION ("আজকের মেনু" §5)
+   ========================================================================== */
+function MenuIntroSection({ onPickAndOrder, onOpenVideoModal }) {
   return (
-    <section className="trust-section">
+    <section className="menu-intro-section" id="menu">
       <div className="container">
-        <div className="trust-grid">
-          {pillars.map((item) => {
-            const Icon = item.icon
-            return (
-              <div className="trust-item" key={item.title}>
-                <div className="trust-icon-box">
-                  <Icon size={20} strokeWidth={2.1} />
-                </div>
-                <div>
-                  <strong>{item.title}</strong>
-                  <small>{item.desc}</small>
-                </div>
-              </div>
-            )
-          })}
+        <div className="sec-header">
+          <h2 className="sec-title">আজকের মেনু</h2>
+          <p className="sec-subtitle">
+            আপনার পছন্দ অনুযায়ী ১ কেজি বা মিক্স করে ৩ কেজি+ অর্ডার করুন — ৩ কেজিতে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি!
+          </p>
+        </div>
+
+        {/* Heritage Rural Bengal Illustration Card */}
+        <div className="menu-illustration-card">
+          <div className="menu-illustration-stage">
+            <MenuHeritageIllustration className="menu-heritage-svg" />
+          </div>
+
+          {/* Overlaid Real Product Photos along bottom table plank */}
+          <div className="menu-product-overlays">
+            <div
+              className="menu-mini-thumb"
+              onClick={() => onPickAndOrder('gur-combo-990')}
+              title="৯৯০৳ কম্বো প্যাকেজ"
+            >
+              <img src={BRAND_IMAGES.combo990} alt="কম্বো গুড়" />
+            </div>
+            <div
+              className="menu-mini-thumb"
+              onClick={() => onPickAndOrder('gur-lali')}
+              title="লিকুইড বা লালি গুড়"
+            >
+              <img src="/img/IMG_8df5a126-73c7-4a1b-b32d-5c8caf3d6f24.jpg.jpeg" alt="লালি গুড়" />
+            </div>
+            <div
+              className="menu-mini-thumb"
+              onClick={() => onPickAndOrder('gur-dana-jhola')}
+              title="দানা ঝোলা গুড়"
+            >
+              <img src="/img/IMG_bf2a2436-bacb-489e-81a2-ff49803c51b3.png" alt="দানা ঝোলা" />
+            </div>
+            <div
+              className="menu-mini-thumb"
+              onClick={() => onPickAndOrder('gur-patali-pata')}
+              title="পাটালি পাটা গুড়"
+            >
+              <img src="/img/received_868957752222465.jpeg" alt="পাটালি গুড়" />
+            </div>
+          </div>
+
+          {/* Video Strip Link */}
+          <div className="menu-video-strip">
+            <button
+              type="button"
+              className="video-strip-btn"
+              onClick={onOpenVideoModal}
+            >
+              <Play size={16} fill="currentColor" />
+              <span>বাগানের চুলায় রস জ্বালানোর তাজা ভিডিও দেখুন</span>
+            </button>
+            <span className="tag">লাইভ ভিডিও</span>
+          </div>
         </div>
       </div>
     </section>
   )
 }
 
-function LiveProcessVideo({ onPickAndOrder }) {
-  const videoRef = useRef(null)
-  const cardRef = useRef(null)
-  const userPausedRef = useRef(false)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isMuted, setIsMuted] = useState(true)
-
-  useEffect(() => {
-    const vid = videoRef.current
-    const wrap = cardRef.current
-    if (!vid || !wrap) return
-
-    if (prefersReducedMotion()) {
-      vid.pause()
-      setIsPlaying(false)
-      return
-    }
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (!entry) return
-        if (entry.isIntersecting) {
-          if (!userPausedRef.current) {
-            const p = vid.play()
-            if (p && typeof p.catch === 'function') p.catch(() => {})
-          }
-        } else {
-          vid.pause()
-        }
-      },
-      { threshold: 0.25 }
-    )
-
-    io.observe(wrap)
-    return () => io.disconnect()
-  }, [])
-
-  const togglePlay = () => {
-    const vid = videoRef.current
-    if (!vid) return
-    if (vid.paused) {
-      userPausedRef.current = false
-      const p = vid.play()
-      if (p && typeof p.catch === 'function') p.catch(() => {})
-    } else {
-      userPausedRef.current = true
-      vid.pause()
-    }
-  }
-
-  const toggleMute = () => {
-    const vid = videoRef.current
-    if (!vid) return
-    const nextMuted = !isMuted
-    vid.muted = nextMuted
-    setIsMuted(nextMuted)
-    if (!nextMuted && vid.paused) {
-      userPausedRef.current = false
-      const p = vid.play()
-      if (p && typeof p.catch === 'function') p.catch(() => {})
-    }
-  }
-
-  return (
-    <section className="section live-video-section" id="live-process">
-      <div className="container">
-        <article className="live-video-card reveal" ref={cardRef}>
-          <div className="live-video-stage">
-            <div className="live-video-frame">
-              <video
-                ref={videoRef}
-                src={BRAND_IMAGES.craftVideo}
-                poster={BRAND_IMAGES.craftVideoPoster}
-                muted={isMuted}
-                loop
-                playsInline
-                preload="metadata"
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                aria-label="তাফালে খেজুরের রস জ্বাল দিয়ে খাঁটি গুড় তৈরির আসল ভিডিও"
-              />
-              <div className="live-video-vignette" aria-hidden="true" />
-
-              <div className="live-video-top-pill">
-                <span className={`live-ember-dot ${isPlaying ? 'active' : ''}`} />
-                <span>বাগানের চুলা · লাইভ প্রস্তুতি</span>
-              </div>
-
-              <div className="live-video-controls-bar">
-                <button
-                  type="button"
-                  className="video-ctrl-btn"
-                  onClick={togglePlay}
-                  aria-label={isPlaying ? 'ভিডিও থামান' : 'ভিডিও চালান'}
-                >
-                  {isPlaying ? <Pause size={15} /> : <Play size={15} />}
-                  <span>{isPlaying ? 'বিরতি' : 'চালাও'}</span>
-                </button>
-                <button
-                  type="button"
-                  className={`video-ctrl-btn ${!isMuted ? 'is-active' : ''}`}
-                  onClick={toggleMute}
-                  aria-label={isMuted ? 'সাউন্ড চালু করুন' : 'সাউন্ড বন্ধ করুন'}
-                >
-                  {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                  <span>{isMuted ? 'সাউন্ড শুনুন' : 'সাউন্ড অন'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="live-video-copy">
-            <span className="live-video-eyebrow">🔥 সরাসরি বাগানের তাফাল থেকে</span>
-            <h2>দেখুন চিনি ছাড়াই কীভাবে ফুটে তৈরি হয় আসল খেজুরের গুড়</h2>
-            <p className="live-video-lead">
-              ভোরের কুয়াশায় সংগ্রহ করা টাটকা খেজুরের রস কাঠের চুলায় মৃদু আঁচে ঘণ্টার পর ঘণ্টা জ্বাল দিয়ে তৈরি হয় আমাদের প্রতিটি ব্যাচ। সোনালি ফেনা আর খাঁটি ঘ্রাণই বিশুদ্ধতার আসল সাক্ষী।
-            </p>
-
-            <ul className="live-video-points">
-              <li>
-                <span className="live-point-check"><Check size={14} strokeWidth={3} /></span>
-                <span>কোনো চিনি, হাইড্রোজ বা ফিটকিরি ছাড়াই ১০০% আসল রস</span>
-              </li>
-              <li>
-                <span className="live-point-check"><Check size={14} strokeWidth={3} /></span>
-                <span>সরাসরি নিজস্ব কারিগরের তত্ত্বাবধানে স্বাস্থ্যসম্মত তাফাল জ্বাল</span>
-              </li>
-              <li>
-                <span className="live-point-check"><Check size={14} strokeWidth={3} /></span>
-                <span>{DELIVERY_START_NOTICE} · হাতে পেয়ে যাচাই করে পেমেন্ট</span>
-              </li>
-            </ul>
-
-            <div className="live-video-ctas">
-              <button
-                type="button"
-                className="btn btn-lg shine"
-                onClick={() => onPickAndOrder('gur-combo-990')}
-              >
-                ৯৯০৳ কম্বো অর্ডার করুন <ArrowRight size={18} />
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-gold btn-lg"
-                onClick={toggleMute}
-              >
-                {isMuted ? <Volume2 size={17} /> : <VolumeX size={17} />}
-                <span>{isMuted ? 'ভিডিওর সাউন্ড শুনুন' : 'সাউন্ড মিউট করুন'}</span>
-              </button>
-            </div>
-          </div>
-        </article>
-      </div>
-    </section>
-  )
-}
-
-function Combos({ comboQty, onPickAndOrder }) {
+/* ==========================================================================
+   4. SECTION 3: PRODUCT GRID (§6)
+   ========================================================================== */
+function ProductGridSection({ onPickAndOrder }) {
   const combo = combos[0]
-  const [activeIdx, setActiveIdx] = useState(0)
-  const details = combo.itemDetails || []
 
   return (
-    <section className="section" id="combo">
+    <section className="product-grid-section" id="products">
       <div className="container">
-        <div className="sec-head reveal">
-          <span className="eyebrow">🪔 সিগনেচার কম্বো প্যাকেজ</span>
-          <h2>মাত্র ৯৯০ টাকায় ৫ ধরনের খাঁটি খেজুরের গুড়</h2>
-          <p>প্রতিটি আইটেমে ট্যাপ করে স্বাদ ও বিবরণ দেখুন · সর্বমোট ২.৫ কেজি · <b>ফ্রি হোম ডেলিভারি</b></p>
+        <div className="sec-header">
+          <h2 className="sec-title">গুড়ের মূল্য তালিকা</h2>
+          <p className="sec-subtitle">
+            প্রতিটি আইটেম শতভাগ চিনিমুক্ত ও সরাসরি গাছিদের হাতে মাটির পাত্রে জ্বাল দেওয়া
+          </p>
         </div>
 
-        <article className="combo-showcase reveal">
-          <div className="combo-media-col">
-            <img src={combo.image} alt={combo.title} loading="lazy" decoding="async" />
-            <div className="combo-media-vignette" />
-            <span className="combo-float-tag">📦 {DELIVERY_START_NOTICE}</span>
-          </div>
-
-          <div className="combo-info-col">
-            <div>
-              <div className="combo-badges">
-                <span className="badge-free">🚚 হোম ডেলিভারি সম্পূর্ণ ফ্রি</span>
-                <span className="badge-weight">📦 সর্বমোট ২.৫ কেজি</span>
+        <div className="product-grid">
+          {/* Featured Signature Combo Card (Spans 2 columns) */}
+          <article className="product-card span-2">
+            <div className="featured-combo-content">
+              <div className="card-img-well">
+                <img src={combo.image} alt={combo.title} loading="lazy" />
               </div>
-              <h3>প্যাকেজে যে ৫টি গুড় থাকছে —</h3>
 
-              <div className="combo-interactive-list">
-                {details.map((item, idx) => {
-                  const isOpen = activeIdx === idx
-                  return (
-                    <button
-                      type="button"
-                      key={item.name}
-                      className={`combo-item-tab ${isOpen ? 'active' : ''}`}
-                      onClick={() => setActiveIdx(idx)}
-                      aria-expanded={isOpen}
-                    >
-                      <div className="combo-tab-head">
-                        <span className="combo-tab-left">
-                          <span className="combo-check-dot"><Check size={13} strokeWidth={3} /></span>
-                          <span>{item.name}</span>
-                        </span>
-                        <span className="combo-weight-pill">{item.weight}</span>
-                      </div>
-                      {isOpen && (
-                        <div className="combo-tab-detail">
-                          <div>{item.note}</div>
-                          <span className="combo-tab-pairing">🍯 {item.pairing}</span>
-                        </div>
-                      )}
-                    </button>
-                  )
-                })}
+              <div className="featured-combo-details">
+                <div className="featured-badge-row">
+                  <span className="tag">বেস্ট সেলার কম্বো</span>
+                  <span className="latin-small" style={{ color: '#2E7D32', fontWeight: 600 }}>
+                    ✓ ফ্রি হোম ডেলিভারি
+                  </span>
+                </div>
+                <h3 className="card-title" style={{ minHeight: 'auto', marginBottom: '4px' }}>
+                  {combo.shortTitle}
+                </h3>
+                <p style={{ fontSize: '12px', color: '#7B6A5B', marginBottom: '8px' }}>
+                  হাফ কেজি করে ৫ ধরনের খাঁটি খেজুর গুড় (মোট ২.৫ কেজি)
+                </p>
+                <div className="card-meta-row" style={{ marginTop: 'auto', marginBottom: '8px' }}>
+                  <span className="card-unit">সর্বমোট ২.৫ কেজি</span>
+                  <span className="card-price">৳{taka(combo.price)}</span>
+                </div>
               </div>
             </div>
 
-            <div className="combo-buy-bar">
-              <div className="combo-price-block">
-                <small>৫ ধরনের গুড় (২.৫ কেজি) + ফ্রি ডেলিভারি</small>
-                <div className="combo-price-num">৳{taka(combo.price)}</div>
+            <button
+              type="button"
+              className="btn-primary btn-card"
+              style={{ marginTop: '10px' }}
+              onClick={() => onPickAndOrder(combo.id)}
+            >
+              <span>অর্ডার করুন</span>
+              <span className="btn-arrow-circle" aria-hidden="true">→</span>
+            </button>
+          </article>
+
+          {/* 6 Loose Kg Products in 2-Column Grid */}
+          {gurPrices.map((prod) => (
+            <article className="product-card" key={prod.id}>
+              <div className="card-img-well">
+                <img src={prod.image} alt={prod.name} loading="lazy" />
               </div>
+
+              <div className="card-tag-wrap">
+                <span className="tag">{prod.tag}</span>
+              </div>
+
+              <h3 className="card-title">{prod.name}</h3>
+
+              <div className="card-meta-row">
+                <span className="card-unit">প্রতি {prod.unit}</span>
+                <span className="card-price">৳{taka(prod.price)}</span>
+              </div>
+
               <button
                 type="button"
-                className="btn btn-lg shine"
-                onClick={() => onPickAndOrder(combo.id)}
+                className="btn-primary btn-card"
+                onClick={() => onPickAndOrder(prod.id)}
               >
-                {comboQty > 0 ? `✓ কম্বো নির্বাচিত (${toBn(comboQty)}) · অর্ডার করুন →` : '৯৯০৳ কম্বো অর্ডার করুন →'}
+                <span>অর্ডার করুন</span>
+                <span className="btn-arrow-circle" aria-hidden="true">→</span>
               </button>
-            </div>
-          </div>
-        </article>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   )
 }
 
-function CraftAndStory() {
-  const stepsGridRef = useRef(null)
-  const drawSvgRef = useRef(null)
-
-  useEffect(() => {
-    const cleanStagger = observeStaggerGroup(stepsGridRef.current, '.craft-step-card')
-    const cleanDraw = observeSvgDraw(drawSvgRef.current)
-    return () => {
-      cleanStagger()
-      cleanDraw()
-    }
-  }, [])
-
+/* ==========================================================================
+   5. SECTION 5: DELIVERY PROMISE ILLUSTRATION ("...আপনার ঘরে" §8)
+   ========================================================================== */
+function DeliveryPromiseSection() {
   return (
-    <section className="section craft-band" id="craft">
+    <section className="delivery-promise-section" id="delivery">
       <div className="container">
-        <div className="sec-head reveal">
-          <span className="eyebrow">🌴 গাছ থেকে আপনার টেবিল</span>
-          <h2>কীভাবে তৈরি হয় ম্যাংগো গার্ডেনের খাঁটি গুড়</h2>
-          <p>ভোরের কুয়াশা ভেদ করে কাঁচা রস সংগ্রহ থেকে হাইজেনিক প্যাকিং পর্যন্ত প্রতিটি ধাপে শতভাগ বিশুদ্ধতা</p>
-        </div>
+        <div className="delivery-scene-card">
+          <DeliveryHeritageIllustration />
 
-        <div className="craft-steps-shell" ref={stepsGridRef}>
-          <svg
-            ref={drawSvgRef}
-            className="craft-svg-connector"
-            viewBox="0 0 920 36"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              className="draw-step-line"
-              d="M 10 18 Q 230 2, 460 18 T 910 18"
-              stroke="#D9822B"
-              strokeWidth="2.4"
-              strokeDasharray="6 6"
-              strokeLinecap="round"
-            />
-          </svg>
-
-          <div className="craft-grid">
-            {craftSteps.map((s) => (
-              <div className="craft-step-card stagger-card" key={s.step}>
-                <div className="craft-num-circle">{s.step}</div>
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <article className="story-card reveal" id="story">
-          <div className="story-photo-wrap">
-            <img
-              src={BRAND_IMAGES.makerStory}
-              alt="খেজুর গুড় তৈরি করছেন ম্যাংগো গার্ডেনের কারিগর"
-              loading="lazy"
-              decoding="async"
-            />
-            <div className="story-caption-badge">
-              🔥 সরাসরি বাগানের চুলা থেকে সদ্য তৈরি খাঁটি খেজুরের পাটালি গুড়
-            </div>
-          </div>
-
-          <div className="story-content">
-            <span className="eyebrow" style={{ alignSelf: 'flex-start' }}>🌿 শতভাগ খাঁটি নিশ্চয়তা</span>
-            <h3>গাছির নিজের তত্ত্বাবধানে সদ্য গড়া প্রতিটি পাটালি</h3>
-            <p>
-              আমাদের প্রতিটি ব্যাচ তৈরি হয় ভোরের প্রথম সংগ্রহ করা টাটকা রসে। চিনি, হাইড্রোজ বা কৃত্রিম রঙ ছাড়াই শুধু কাঠের আগুনে ধীরে ধীরে জ্বাল দিয়ে অটুট রাখা হয় আসল খেজুর রসের ঘ্রাণ।
+          {/* Speech-Bubble Delivery Card */}
+          <div className="delivery-speech-bubble">
+            <span className="bubble-tag-disc" aria-hidden="true">
+              <Truck size={14} />
+            </span>
+            <span className="bubble-pill-top">১-৩ দিনে ডেলিভারি</span>
+            <h3 className="bubble-heading">আপনার দরজায়</h3>
+            <p className="bubble-desc">
+              সারা বাংলাদেশে দ্রুততম সময়ে ক্যাশ অন ডেলিভারি · {DELIVERY_START_NOTICE} · পার্সেল খুলে যাচাই করে তারপর টাকা পরিশোধ করুন।
             </p>
-
-            <div className="story-pillars">
-              <div className="story-pillar">
-                <span className="story-pillar-icon">🍯</span>
-                <div>
-                  <strong>ল্যাব ও স্বাদ পরীক্ষিত বিশুদ্ধতা</strong>
-                  <small>হাতে পাওয়ার পর স্বাদ ও ঘ্রাণ যাচাই করে মূল্য পরিশোধের সুবিধা।</small>
-                </div>
-              </div>
-              <div className="story-pillar">
-                <span className="story-pillar-icon">🛡️</span>
-                <div>
-                  <strong>ফুড-গ্রেড জার ও ফয়েল প্যাকিং</strong>
-                  <small>ডেলিভারির পথে গলে বা ভেঙে যাওয়ার ভয় নেই, সারা দেশে নিরাপদ ডেলিভারি।</small>
-                </div>
-              </div>
-              <div className="story-pillar">
-                <span className="story-pillar-icon">📦</span>
-                <div>
-                  <strong>{DELIVERY_START_NOTICE}</strong>
-                  <small>মৌসুমের শুরুতেই তাজা ব্যাচ পেতে এখনই প্রি-অর্ডার কনফার্ম করুন।</small>
-                </div>
-              </div>
-            </div>
           </div>
-        </article>
+
+          <div className="delivery-footer-note">
+            <h3>ম্যাংগো গার্ডেনের খাঁটি গুড়, আপনার ঘরে</h3>
+            <p>গাছিদের পরম যত্নে তৈরি ঐতিহ্যবাহী শীতের মিষ্টান্ন পৌঁছে দিচ্ছি সবার ঠিকানায়।</p>
+          </div>
+        </div>
       </div>
     </section>
   )
 }
 
-function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSuccess, onBeginCheckout }) {
+/* ==========================================================================
+   6. SECTION 6: ORDER MEMO (RECEIPT-STYLED ORDER FORM §9)
+   ========================================================================== */
+function OrderMemoSection({
+  selected,
+  onToggleItem,
+  onUpdateQty,
+  onResetCart,
+  onOrderSuccess,
+  onBeginCheckout,
+  activePreviewId,
+  onSelectPreview
+}) {
   const { refreshAll } = useCms() || {}
   const [form, setForm] = useState({ name: '', phone: '', address: '' })
   const [err, setErr] = useState({})
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [orderErr, setOrderErr] = useState('')
-  const orderSectionRef = useRef(null)
+  const sectionRef = useRef(null)
   const beginCheckoutRef = useRef(onBeginCheckout)
   beginCheckoutRef.current = onBeginCheckout
 
@@ -620,8 +421,12 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
   const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
   const total = subtotal + delivery
 
+  // Current preview image
+  const currentPreviewItem =
+    orderOptions.find((o) => o.id === activePreviewId) || comboOption
+
   useEffect(() => {
-    const el = orderSectionRef.current
+    const el = sectionRef.current
     if (!el) return
     const io = new IntersectionObserver(
       (entries) => {
@@ -629,31 +434,32 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
           beginCheckoutRef.current?.()
         }
       },
-      { threshold: 0.18 }
+      { threshold: 0.15 }
     )
     io.observe(el)
     return () => io.disconnect()
   }, [])
 
-  const submit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setOrderErr('')
 
     if (!hasItems) {
-      setOrderErr('অনুগ্রহ করে অন্তত একটি প্যাকেজ বা গুড় নির্বাচন করুন')
+      setOrderErr('অনুগ্রহ করে অন্তত একটি গুড় বা প্যাকেজ নির্বাচন করুন')
       return
     }
 
     const er = {}
     if (form.name.trim().length < 2) er.name = 'আপনার নাম লিখুন'
     const normalizedPhone = normalizeBdPhone(form.phone)
-    if (!isValidBdPhone(normalizedPhone)) er.phone = 'সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন'
-    if (form.address.trim().length < 8) er.address = 'পূর্ণ ঠিকানা লিখুন'
+    if (!isValidBdPhone(normalizedPhone)) er.phone = 'সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 01XXXXXXXXX)'
+    if (form.address.trim().length < 8) er.address = 'পূর্ণ ঠিকানা লিখুন (বাসা, রোড, থানা, জেলা)'
     setErr(er)
     if (Object.keys(er).length) return
 
     beginCheckoutRef.current?.()
     setLoading(true)
+
     const orderId = 'MG-' + Date.now().toString(36).toUpperCase()
     const clientIp = await fetchClientIp()
 
@@ -726,11 +532,7 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
 
     if (result.success) {
       if (refreshAll) {
-        try {
-          refreshAll()
-        } catch (err) {
-          // silent
-        }
+        try { refreshAll() } catch (err) { /* silent */ }
       }
       setForm({ name: '', phone: '', address: '' })
       if (onOrderSuccess) {
@@ -744,241 +546,340 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
   }
 
   return (
-    <section className="section" id="order" ref={orderSectionRef}>
+    <section className="order-memo-section" id="order" ref={sectionRef}>
       <div className="container">
-        <div className="sec-head reveal">
-          <span className="eyebrow">🛒 অর্ডার ফর্ম</span>
-          <h2>পছন্দের গুড় বেছে অর্ডার কনফার্ম করুন</h2>
-          <p>ক্যাশ অন ডেলিভারি · {DELIVERY_START_NOTICE}</p>
+        <div className="sec-header">
+          <h2 className="sec-title">অর্ডার করুন</h2>
+          <p className="sec-subtitle">
+            ক্যাশ অন ডেলিভারি · {DELIVERY_START_NOTICE} · পণ্য হাতে পেয়ে টাকা পরিশোধ
+          </p>
         </div>
 
-        <form
-          className="checkout-grid reveal"
-          onSubmit={submit}
-          onFocus={() => beginCheckoutRef.current?.()}
-          onInput={() => beginCheckoutRef.current?.()}
-          noValidate
-        >
-          <div className="checkout-panel">
-            <div className="opt-header-row">
-              <span className="opt-header-title">১. প্যাকেজ ও গুড় নির্বাচন করুন</span>
-              <span className="opt-limit-pill">একাধিক নেওয়া যাবে</span>
+        {/* Receipt Styled Memo Card */}
+        <div className="receipt-memo-card desktop-two-col">
+          {/* Memo Header */}
+          <div className="memo-header">
+            <div className="memo-header-top-row">
+              <img src={BRAND_IMAGES.logo} alt="ম্যাংগো গার্ডেন" className="memo-logo" />
+              <h3 className="memo-title">অর্ডার মেমো</h3>
+              <span className="memo-no">মেমো নং ০১</span>
             </div>
+            <p className="memo-shop-subtitle">
+              ম্যাংগো গার্ডেন · খাঁটি খেজুরের গুড় · যশোর ও নাটোর
+            </p>
+            <div className="memo-dashed-sep" />
+          </div>
 
-            <div className="opt-group-title">
-              <span>🪔 বিশেষ প্যাকেজ (হোম ডেলিভারি ফ্রি · সর্বোচ্চ {toBn(MAX_COMBO_PACKS)} প্যাক)</span>
-              {comboQty > 0 && <span>নির্বাচিত: {toBn(comboQty)} প্যাক</span>}
-            </div>
-            <div className="opts">
-              <div className={`opt-row ${comboQty > 0 ? 'active' : ''}`}>
-                <button
-                  type="button"
-                  className="opt-main-btn"
-                  onClick={() => onToggleItem(comboOption.id)}
-                  aria-pressed={comboQty > 0}
-                >
-                  <span className="chk">{comboQty > 0 ? '✓' : ''}</span>
-                  <span className="opt-thumb-box">
-                    <img src={comboOption.image} alt={comboOption.label} className="opt-thumb" />
-                  </span>
-                  <span className="opt-text">
-                    <b>{comboOption.label}</b>
-                    <small className="free">হোম ডেলিভারি চার্জ একেবারেই ফ্রি!</small>
-                  </span>
-                </button>
-                <div className="opt-right-ctrl">
-                  <span className="opt-price">৳{taka(comboOption.price)}</span>
-                  {comboQty > 0 && (
-                    <div className="mini-stepper">
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="memo-two-col-grid">
+              {/* Left Column: Product Showcase & List */}
+              <div className="memo-left-col">
+                {/* Product Showcase */}
+                <div className="memo-showcase">
+                  <div className="memo-big-preview">
+                    <img
+                      src={currentPreviewItem.image}
+                      alt={currentPreviewItem.label}
+                    />
+                  </div>
+                  <div className="memo-thumbs-strip">
+                    {orderOptions.map((opt) => (
                       <button
                         type="button"
-                        onClick={() => onUpdateQty(comboOption.id, comboQty - 1, comboOption.max)}
-                        aria-label="প্যাকেজ কমান"
+                        key={opt.id}
+                        className={`memo-thumb-item ${currentPreviewItem.id === opt.id ? 'active' : ''}`}
+                        onClick={() => onSelectPreview(opt.id)}
+                        title={opt.label}
                       >
-                        −
+                        <img src={opt.image} alt={opt.label} />
                       </button>
-                      <span>{toBn(comboQty)} প্যাক</span>
-                      <button
-                        type="button"
-                        onClick={() => onUpdateQty(comboOption.id, comboQty + 1, comboOption.max)}
-                        disabled={comboQty >= comboOption.max}
-                        aria-label={`প্যাকেজ বাড়ান (সর্বোচ্চ ${toBn(comboOption.max)} প্যাক)`}
-                        title={`সর্বোচ্চ ${toBn(comboOption.max)} প্যাক নেওয়া যাবে`}
-                      >
-                        +
-                      </button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="opt-group-title">
-              <span>🍯 প্রতি কেজির খাঁটি খেজুরের গুড় (প্রতি আইটেম সর্বোচ্চ {toBn(MAX_LOOSE_KG_PER_ITEM)} কেজি)</span>
-              <span>নির্বাচিত: {toBn(looseKg)} কেজি</span>
-            </div>
+                {/* Subheading */}
+                <div className="memo-section-heading">
+                  <span className="heading-red-bar" />
+                  <span className="heading-title">গুড় ও পরিমাণ বেছে নিন</span>
+                  <span className="heading-hint">একাধিক বেছে নিতে পারেন</span>
+                </div>
 
-            <div className={`bonus-tracker ${hasFreeJholaBonus ? 'unlocked' : ''}`}>
-              <div className="bonus-tracker-text">
-                <span>
-                  {hasFreeJholaBonus
-                    ? '🎉 অভিনন্দন! ৩ কেজি+ গুড়ে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি যুক্ত হয়েছে!'
-                    : looseKg > 0
-                    ? `💠 আর ${toBn(FREE_BONUS_MIN_KG - looseKg)} কেজি নিলেই ৫০০ গ্রাম ঝোলা গুড় ফ্রি!`
-                    : '💠 যেকোনো তিন কেজি গুড় নিলে ৫০০ গ্রাম ঝোলা গুড় ফ্রি!'}
-                </span>
-                <span>{toBn(Math.min(looseKg, FREE_BONUS_MIN_KG))}/{toBn(FREE_BONUS_MIN_KG)} কেজি</span>
-              </div>
-              <div className="bonus-progress-track">
-                <div
-                  className="bonus-progress-fill"
-                  style={{ transform: `scaleX(${progressRatio})` }}
-                />
-              </div>
-            </div>
+                {/* Bonus Tracker */}
+                <div className={`memo-bonus-tracker ${hasFreeJholaBonus ? 'unlocked' : ''}`}>
+                  <div className="bonus-tracker-labels">
+                    <span>
+                      {hasFreeJholaBonus
+                        ? '🎉 অভিনন্দন! ৩ কেজি+ গুড়ে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি যুক্ত হয়েছে!'
+                        : looseKg > 0
+                        ? `💠 আর ${toBn(FREE_BONUS_MIN_KG - looseKg)} কেজি নিলেই ৫০০ গ্রাম ঝোলা গুড় ফ্রি!`
+                        : '💠 যেকোনো তিন কেজি গুড় নিলে ৫০০ গ্রাম ঝোলা গুড় ফ্রি!'}
+                    </span>
+                    <span>{toBn(Math.min(looseKg, FREE_BONUS_MIN_KG))}/{toBn(FREE_BONUS_MIN_KG)} কেজি</span>
+                  </div>
+                  <div className="bonus-track">
+                    <div
+                      className="bonus-fill"
+                      style={{ width: `${progressRatio * 100}%` }}
+                    />
+                  </div>
+                </div>
 
-            <div className="opts">
-              {kgOptions.map((opt) => {
-                const qty = selected[opt.id] || 0
-                const isSelected = qty > 0
-                const thumbClass = [
-                  'opt-thumb',
-                  opt.contain ? 'is-contain' : '',
-                  opt.cropCorner ? 'is-crop' : '',
-                  opt.zoomFocus ? 'is-zoom' : ''
-                ]
-                  .filter(Boolean)
-                  .join(' ')
-
-                return (
-                  <div className={`opt-row ${isSelected ? 'active' : ''}`} key={opt.id}>
-                    <button
-                      type="button"
-                      className="opt-main-btn"
-                      onClick={() => onToggleItem(opt.id)}
-                      aria-pressed={isSelected}
+                {/* Product List */}
+                <div className="memo-product-list">
+                  {/* 1. Combo Package Row */}
+                  <div className={`memo-product-row ${comboQty > 0 ? 'checked' : ''}`}>
+                    <div
+                      className="memo-chk-box"
+                      onClick={() => {
+                        onToggleItem(comboOption.id)
+                        onSelectPreview(comboOption.id)
+                      }}
+                      role="checkbox"
+                      aria-checked={comboQty > 0}
                     >
-                      <span className="chk">{isSelected ? '✓' : ''}</span>
-                      <span className="opt-thumb-box">
-                        <img src={opt.image} alt={opt.label} className={thumbClass} loading="lazy" />
-                      </span>
-                      <span className="opt-text">
-                        <b>{opt.label}</b>
-                        <small>{opt.sub}</small>
-                      </span>
-                    </button>
-                    <div className="opt-right-ctrl">
-                      <span className="opt-price">
-                        ৳{taka(opt.price)}<small>/কেজি</small>
-                      </span>
-                      <div className="mini-stepper">
-                        <button
-                          type="button"
-                          onClick={() => onUpdateQty(opt.id, qty - 1, opt.max)}
-                          disabled={qty <= 0}
-                          aria-label={`${opt.label} কমান`}
-                        >
-                          −
-                        </button>
-                        <span>{toBn(qty)} কেজি</span>
-                        <button
-                          type="button"
-                          onClick={() => onUpdateQty(opt.id, qty + 1, opt.max)}
-                          disabled={qty >= opt.max}
-                          aria-label={`${opt.label} বাড়ান (সর্বোচ্চ ${toBn(opt.max)} কেজি)`}
-                          title={`সর্বোচ্চ ${toBn(opt.max)} কেজি নেওয়া যাবে`}
-                        >
-                          +
-                        </button>
+                      {comboQty > 0 ? '✓' : ''}
+                    </div>
+                    <div
+                      className="memo-row-thumb"
+                      onClick={() => onSelectPreview(comboOption.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <img src={comboOption.image} alt={comboOption.label} />
+                    </div>
+                    <div className="memo-row-meta">
+                      <div className="memo-row-name">{comboOption.label}</div>
+                      <div className="memo-row-sub" style={{ color: '#2E7D32', fontWeight: 600 }}>
+                        হোম ডেলিভারি সম্পূর্ণ ফ্রি! (২.৫ কেজি)
                       </div>
+                      {comboQty > 0 && (
+                        <div className="memo-stepper">
+                          <button
+                            type="button"
+                            onClick={() => onUpdateQty(comboOption.id, comboQty - 1, comboOption.max)}
+                            aria-label="প্যাকেজ কমান"
+                          >
+                            −
+                          </button>
+                          <span>{toBn(comboQty)} প্যাক</span>
+                          <button
+                            type="button"
+                            onClick={() => onUpdateQty(comboOption.id, comboQty + 1, comboOption.max)}
+                            disabled={comboQty >= comboOption.max}
+                            aria-label="প্যাকেজ বাড়ান"
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="memo-row-price-col">
+                      <span className="memo-row-price">৳{taka(comboOption.price)}</span>
                     </div>
                   </div>
-                )
-              })}
-            </div>
-          </div>
 
-          <div className="checkout-panel checkout-sticky">
-            <div className="opt-header-row">
-              <span className="opt-header-title">২. আপনার ডেলিভারি ঠিকানা</span>
-            </div>
+                  {/* 2. Loose Kg Products Rows */}
+                  {kgOptions.map((opt) => {
+                    const qty = selected[opt.id] || 0
+                    const isChecked = qty > 0
 
-            <div className="delivery-date-banner">
-              📦 {DELIVERY_START_NOTICE}
-            </div>
+                    return (
+                      <div className={`memo-product-row ${isChecked ? 'checked' : ''}`} key={opt.id}>
+                        <div
+                          className="memo-chk-box"
+                          onClick={() => {
+                            onToggleItem(opt.id)
+                            onSelectPreview(opt.id)
+                          }}
+                          role="checkbox"
+                          aria-checked={isChecked}
+                        >
+                          {isChecked ? '✓' : ''}
+                        </div>
+                        <div
+                          className="memo-row-thumb"
+                          onClick={() => onSelectPreview(opt.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <img src={opt.image} alt={opt.label} />
+                        </div>
+                        <div className="memo-row-meta">
+                          <div className="memo-row-name">{opt.label}</div>
+                          <div className="memo-row-sub">{opt.sub}</div>
+                          {isChecked && (
+                            <div className="memo-stepper">
+                              <button
+                                type="button"
+                                onClick={() => onUpdateQty(opt.id, qty - 1, opt.max)}
+                                aria-label={`${opt.label} কমান`}
+                              >
+                                −
+                              </button>
+                              <span>{toBn(qty)} কেজি</span>
+                              <button
+                                type="button"
+                                onClick={() => onUpdateQty(opt.id, qty + 1, opt.max)}
+                                disabled={qty >= opt.max}
+                                aria-label={`${opt.label} বাড়ান`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div className="memo-row-price-col">
+                          <span className="memo-row-price">
+                            ৳{taka(opt.price)}<small style={{ fontSize: '11px', color: '#7B6A5B' }}>/কেজি</small>
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
 
-            <div className="field">
-              <label className="lbl" htmlFor="name">আপনার নাম</label>
-              <input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="যেমন: রহিম উদ্দিন" />
-              {err.name && <span className="err">{err.name}</span>}
-            </div>
-            <div className="field">
-              <label className="lbl" htmlFor="phone">মোবাইল নম্বর</label>
-              <input id="phone" inputMode="numeric" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="01XXXXXXXXX" />
-              {err.phone && <span className="err">{err.phone}</span>}
-            </div>
-            <div className="field">
-              <label className="lbl" htmlFor="address">পূর্ণ ঠিকানা</label>
-              <textarea id="address" rows="3" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="বাসা, রোড, থানা, জেলা" />
-              {err.address && <span className="err">{err.address}</span>}
-            </div>
+              {/* Right Column: Customer Fields & Summary */}
+              <div className="memo-right-col memo-col-divider">
+                <div className="memo-section-heading">
+                  <span className="heading-red-bar" />
+                  <span className="heading-title">আপনার তথ্য ও ঠিকানা</span>
+                </div>
 
-            <div className="summary">
-              {comboQty > 0 && (
-                <div>
-                  <span>{comboOption.label} ({toBn(comboQty)} প্যাক)</span>
-                  <span>৳{taka(comboSubtotal)}</span>
+                <div className="memo-fields-block">
+                  <div className="memo-field-group">
+                    <div className="memo-field-label-row">
+                      <label className="memo-field-label" htmlFor="name">আপনার নাম</label>
+                      <span className="latin-small">· Full Name</span>
+                    </div>
+                    <input
+                      id="name"
+                      className="memo-input"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      placeholder="যেমন: মোঃ সাকিব হাসান"
+                    />
+                    {err.name && <span className="field-error-text">{err.name}</span>}
+                  </div>
+
+                  <div className="memo-field-group">
+                    <div className="memo-field-label-row">
+                      <label className="memo-field-label" htmlFor="phone">মোবাইল নম্বর</label>
+                      <span className="latin-small">· Mobile Number</span>
+                    </div>
+                    <input
+                      id="phone"
+                      className="memo-input"
+                      inputMode="tel"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      placeholder="01XXXXXXXXX"
+                    />
+                    {err.phone && <span className="field-error-text">{err.phone}</span>}
+                  </div>
+
+                  <div className="memo-field-group">
+                    <div className="memo-field-label-row">
+                      <label className="memo-field-label" htmlFor="address">পূর্ণ ঠিকানা</label>
+                      <span className="latin-small">· Delivery Address</span>
+                    </div>
+                    <textarea
+                      id="address"
+                      className="memo-input memo-textarea"
+                      rows="2"
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      placeholder="বাসা/হোল্ডিং, রোড, থানা, জেলা"
+                    />
+                    {err.address && <span className="field-error-text">{err.address}</span>}
+                  </div>
                 </div>
-              )}
-              {looseEntries.map(({ opt, qty }) => (
-                <div key={opt.id}>
-                  <span>{opt.label} ({toBn(qty)} কেজি)</span>
-                  <span>৳{taka(opt.price * qty)}</span>
+
+                {/* Recalculation Summary */}
+                <div className="memo-summary-table">
+                  {comboQty > 0 && (
+                    <div className="memo-summary-row">
+                      <span>{comboOption.label} ({toBn(comboQty)} প্যাক)</span>
+                      <span>৳{taka(comboSubtotal)}</span>
+                    </div>
+                  )}
+
+                  {looseEntries.map(({ opt, qty }) => (
+                    <div className="memo-summary-row" key={opt.id}>
+                      <span>{opt.label} ({toBn(qty)} কেজি)</span>
+                      <span>৳{taka(opt.price * qty)}</span>
+                    </div>
+                  ))}
+
+                  {hasFreeJholaBonus && (
+                    <div className="memo-summary-row" style={{ color: '#2E7D32' }}>
+                      <span>🎁 {FREE_BONUS_ITEM_NAME}</span>
+                      <span>ফ্রি! (৳০)</span>
+                    </div>
+                  )}
+
+                  <div className="memo-summary-row">
+                    <span>ডেলিভারি চার্জ</span>
+                    {!hasItems ? (
+                      <span>৳০</span>
+                    ) : delivery === 0 ? (
+                      <span className="free-tag">ফ্রি হোম ডেলিভারি 🎉</span>
+                    ) : (
+                      <span>৳{taka(delivery)}</span>
+                    )}
+                  </div>
+
+                  <div className="memo-summary-row total-row">
+                    <span>সর্বমোট পরিশোধযোগ্য</span>
+                    <span className="total-amount">৳{taka(total)}</span>
+                  </div>
                 </div>
-              ))}
-              {hasFreeJholaBonus && (
-                <div className="free">
-                  <span>🎁 {FREE_BONUS_ITEM_NAME}</span>
-                  <span>ফ্রি! (৳০)</span>
-                </div>
-              )}
-              {!hasItems && (
-                <div style={{ color: '#b3261e' }}>
-                  <span>কোনো আইটেম নির্বাচিত নেই</span>
-                  <span>৳০</span>
-                </div>
-              )}
-              <div>
-                <span>হোম ডেলিভারি চার্জ</span>
-                {!hasItems ? (
-                  <span>৳০</span>
-                ) : delivery === 0 ? (
-                  <span className="free">একেবারেই ফ্রি 🎉</span>
-                ) : (
-                  <span>৳{taka(delivery)}</span>
+
+                {orderErr && (
+                  <div className="field-error-text" style={{ textAlign: 'center', marginBottom: '10px' }}>
+                    {orderErr}
+                  </div>
                 )}
-              </div>
-              <div className="total">
-                <span>সর্বমোট</span>
-                <span key={total} className="pop">৳{taka(total)}</span>
+
+                {/* Full Width Submit Button */}
+                <button
+                  type="submit"
+                  className="btn-primary btn-lg"
+                  disabled={loading || !hasItems}
+                >
+                  <span>{loading ? 'অর্ডার প্রসেস হচ্ছে...' : 'অর্ডার নিশ্চিত করুন'}</span>
+                  <span className="btn-arrow-circle" aria-hidden="true">→</span>
+                </button>
+
+                <div className="memo-cod-note">
+                  <ShieldCheck size={14} color="#B8231C" />
+                  <span>ক্যাশ অন ডেলিভারি — পণ্য হাতে পেয়ে যাচাই করে মূল্য দিন</span>
+                </div>
+
+                {/* Memo Footer Signature & Shop Seal Stamp */}
+                <div className="memo-sign-row">
+                  <span className="memo-sign-left">ধন্যবাদান্তে,</span>
+                  <span className="memo-sign-brand">ম্যাংগো গার্ডেন</span>
+                  <HeritageShopSeal />
+                </div>
               </div>
             </div>
-
-            {orderErr && <span className="err" style={{ marginBottom: '12px', textAlign: 'center' }}>{orderErr}</span>}
-            <button type="submit" className="btn btn-lg btn-block shine" disabled={loading || !hasItems}>
-              {loading ? 'অর্ডার জমা হচ্ছে...' : `অর্ডার কনফার্ম করুন · ৳${taka(total)}`}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
 
+      {/* Done Modal fallback */}
       {done && (
         <div className="modal" onClick={() => { setDone(false); onResetCart(); }}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="check">✓</div>
             <h3>ধন্যবাদ, {form.name}!</h3>
-            <p>আপনার অর্ডারটি সফলভাবে জমা হয়েছে। খুব শীঘ্রই <b>{form.phone}</b> নম্বরে কল করে কনফার্ম করা হবে।</p>
-            <button className="btn btn-block" onClick={() => { setDone(false); onResetCart(); }}>ঠিক আছে</button>
+            <p>আপনার অর্ডারটি সফলভাবে গৃহীত হয়েছে। খুব শীঘ্রই আমাদের প্রতিনিধি কল করে কনফার্ম করবেন।</p>
+            <button
+              type="button"
+              className="btn-primary btn-card"
+              onClick={() => { setDone(false); onResetCart(); }}
+            >
+              ঠিক আছে
+            </button>
           </div>
         </div>
       )}
@@ -986,201 +887,219 @@ function OrderForm({ selected, onToggleItem, onUpdateQty, onResetCart, onOrderSu
   )
 }
 
-function FAQ() {
-  const qs = [
-    ['ডেলিভারি কবে থেকে শুরু হবে?', 'আগামী ১৫ নভেম্বর থেকে ডেলিভারি শুরু হবে, ইনশাআল্লাহ। এখন প্রি-অর্ডার করে রাখলে সিরিয়াল অনুযায়ী দ্রুত ডেলিভারি পাবেন।'],
-    ['৯৯০ টাকার বিশেষ প্যাকেজে কী কী থাকছে?', 'মাত্র ৯৯০ টাকায় মোট ২.৫ কেজি গুড়: হাফ কেজি গোল পাটালি, হাফ কেজি ফয়েল পাটালি, হাফ কেজি ঝোলা গুড়, হাফ কেজি দানাদার গুড় এবং হাফ কেজি চকলেট গুড় — সাথে হোম ডেলিভারি চার্জ একেবারেই ফ্রি!'],
-    ['৩ কেজি গুড়ের বিশেষ অফারটি কী?', 'অর্ডার ফর্মের তালিকা থেকে যেকোনো তিন কেজি (মিক্স করেও) বা তার বেশি গুড় অর্ডার করলে ৫০০ গ্রাম ঝোলা গুড় একদম ফ্রি পাবেন।'],
-    ['গুড় কি ১০০% খাঁটি ও চিনিমুক্ত?', 'জ্বি, ম্যাংগো গার্ডেনের প্রতিটি গুড় কোনো প্রকার চিনি, হাইড্রোজ বা ক্ষতিকর কেমিক্যাল ছাড়াই খাঁটি খেজুরের রস থেকে তৈরি।'],
-    ['টাকা কীভাবে পরিশোধ করব?', 'সম্পূর্ণ ক্যাশ অন ডেলিভারি — পণ্য হাতে পেয়ে দেখে ডেলিভারি ম্যানকে টাকা দেবেন।'],
-  ]
-  const [open, setOpen] = useState(0)
+/* ==========================================================================
+   7. SECTION 7: HERITAGE FOOTER (§10)
+   ========================================================================== */
+function HeritageFooter({ onOpenAdmin, siteSettings }) {
+  const { waE164, waDisplay } = resolveWhatsAppConfig(siteSettings)
+  const phoneTel = waE164.startsWith('88') ? waE164.slice(2) : waE164
+
   return (
-    <section className="section" id="faq">
-      <div className="container">
-        <div className="sec-head reveal">
-          <span className="eyebrow">❓ সাধারণ জিজ্ঞাসা</span>
-          <h2>আপনার মনে থাকা প্রশ্ন ও উত্তর</h2>
+    <footer className="heritage-footer" id="footer">
+      <WavyTopEdge />
+
+      <div className="container footer-inner-content">
+        <div className="footer-top-row">
+          <a href="#top" className="footer-top-link">
+            <ChevronUp size={16} />
+            <span>উপরে চলুন</span>
+          </a>
+          <span className="footer-brand-title">ম্যাংগো গার্ডেন</span>
         </div>
-        <div className="faq-wrap">
-          <div className="faq reveal">
-            {qs.map(([q, a], i) => (
-              <div className={`faq-item ${open === i ? 'open' : ''}`} key={q}>
-                <button type="button" onClick={() => setOpen(open === i ? -1 : i)} aria-expanded={open === i}>
-                  <span>{q}</span>
-                  <span className="chev">+</span>
-                </button>
-                <div className="faq-a"><p>{a}</p></div>
-              </div>
-            ))}
-          </div>
+
+        <div className="footer-slogan-wrap">
+          <h3 className="footer-slogan">গ্রীষ্মে আম, শীতে গুড়।</h3>
+          <p className="footer-slogan-sub">
+            ১০০% খাঁটি খেজুরের গুড় · {DELIVERY_START_NOTICE}
+          </p>
+        </div>
+
+        {/* Contact Pills */}
+        <div className="footer-contact-pills">
+          <a href={`tel:${phoneTel}`} className="contact-pill-card">
+            <span className="pill-icon-circle phone">
+              <Phone size={18} />
+            </span>
+            <div className="pill-info">
+              <span>সরাসরি কল করুন</span>
+              <strong>{waDisplay}</strong>
+            </div>
+          </a>
+
+          <a
+            href={`https://wa.me/${waE164}?text=${encodeURIComponent('আসসালামু আলাইকুম ম্যাংগো গার্ডেন, খাঁটি খেজুরের গুড় সম্পর্কে জানতে / অর্ডার করতে চাচ্ছি।')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="contact-pill-card"
+            onClick={() => trackMessageAction({ channel: 'whatsapp', placement: 'footer', siteSettings })}
+          >
+            <span className="pill-icon-circle wa">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+            </span>
+            <div className="pill-info">
+              <span>হোয়াটসঅ্যাপ মেসেজ</span>
+              <strong>মেসেজ পাঠান</strong>
+            </div>
+          </a>
+        </div>
+
+        {/* Giant Decorative Brand Wordmark */}
+        <div className="footer-giant-wordmark" aria-hidden="true">
+          ম্যাংগো গার্ডেন
+        </div>
+
+        {/* Bottom Row */}
+        <div className="footer-bottom-row">
+          <button
+            type="button"
+            className="admin-portal-link"
+            onClick={onOpenAdmin}
+            title="অ্যাডমিন প্যানেল (বা Ctrl+Shift+A প্রেস করুন)"
+          >
+            ⚙️ অ্যাডমিন প্যানেল
+          </button>
+          <span>© {toBn(new Date().getFullYear())} ম্যাংগো গার্ডেন · সর্বস্বত্ব সংরক্ষিত</span>
         </div>
       </div>
-    </section>
+    </footer>
   )
 }
 
-function StickyBar({ show, totalItems, grandTotal, hasFreeShipping, onOpenCheckout }) {
+/* ==========================================================================
+   8. STICKY MOBILE BAR & FLOATING CHAT DOCK (§11)
+   ========================================================================== */
+function StickyBar({ show, totalItems, grandTotal, onOpenCheckout }) {
   return (
     <div className={`sticky-bar ${show ? 'show' : ''}`}>
-      <div>
-        <small>{hasFreeShipping ? '🚚 ফ্রি হোম ডেলিভারি সক্রিয়' : '📦 ১৫ নভেম্বর থেকে ডেলিভারি শুরু'}</small>
-        <b>
+      <div className="sticky-bar-left">
+        <small>খাঁটি খেজুর গুড়</small>
+        <strong>
           {totalItems > 0
-            ? `${toBn(totalItems)}টি আইটেম · ৳${taka(grandTotal)}`
-            : '৫ ধরনের খাঁটি গুড় · ৳৯৯০'}
-        </b>
+            ? `${toBn(totalItems)}টি নির্বাচিত · ৳${taka(grandTotal)}`
+            : '৳৩৭০ থেকে শুরু'}
+        </strong>
       </div>
       <button
         type="button"
-        className="btn shine"
+        className="btn-primary"
+        style={{ height: '40px', padding: '0 16px', fontSize: '14px' }}
         onClick={() => (onOpenCheckout ? onOpenCheckout() : scrollToSection('order'))}
       >
-        অর্ডার সম্পন্ন করুন
+        <span>অর্ডার করুন</span>
+        <span className="btn-arrow-circle" aria-hidden="true">→</span>
       </button>
     </div>
   )
 }
 
-function resolveWhatsAppConfig(siteSettings) {
-  const rawDigits = String(siteSettings?.whatsapp_number || '').replace(/[^0-9]/g, '')
-  const isPlaceholder = !rawDigits || /^880?1700000000$/.test(rawDigits) || /000000/.test(rawDigits)
-  if (isPlaceholder) {
-    return { waE164: WHATSAPP_E164, waDisplay: WHATSAPP_DISPLAY }
-  }
-  const waE164 = rawDigits.startsWith('880')
-    ? rawDigits
-    : rawDigits.startsWith('0')
-    ? `88${rawDigits}`
-    : rawDigits
-  const localDigits = waE164.startsWith('880') ? `0${waE164.slice(3)}` : waE164
-  const waDisplay =
-    localDigits.length === 11 ? `${localDigits.slice(0, 5)}-${localDigits.slice(5)}` : WHATSAPP_DISPLAY
-  return { waE164, waDisplay }
-}
-
 function FloatingChatDock({ raised, siteSettings }) {
   const { waE164, waDisplay } = resolveWhatsAppConfig(siteSettings)
   const fbUrl = siteSettings?.facebook_page || 'https://www.facebook.com/mangogardenbd1'
-  const waText = encodeURIComponent(
-    'আসসালামু আলাইকুম ম্যাংগো গার্ডেন, খাঁটি খেজুরের গুড় সম্পর্কে জানতে / অর্ডার করতে চাচ্ছি।'
-  )
 
   return (
     <aside className={`floating-dock ${raised ? 'with-sticky' : ''}`} aria-label="তাৎক্ষণিক যোগাযোগ">
       <a
-        href={`https://wa.me/${waE164}?text=${waText}`}
+        href={`https://wa.me/${waE164}?text=${encodeURIComponent('আসসালামু আলাইকুম ম্যাংগো গার্ডেন, খাঁটি খেজুরের গুড় সম্পর্কে জানতে / অর্ডার করতে চাচ্ছি।')}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="floating-pill floating-wa"
-        aria-label={`হোয়াটসঅ্যাপে যোগাযোগ করুন: ${waDisplay}`}
-        title={`WhatsApp: ${waDisplay}`}
+        className="floating-pill"
+        aria-label={`হোয়াটসঅ্যাপ: ${waDisplay}`}
         onClick={() => trackMessageAction({ channel: 'whatsapp', placement: 'floating_widget', siteSettings })}
       >
-        <span className="floating-icon-disc floating-wa-disc">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <span className="floating-icon-disc wa" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
           </svg>
-          <span className="floating-online-dot" aria-hidden="true" />
         </span>
-        <span className="floating-wa-label">
-          <strong>হোয়াটসঅ্যাপ</strong>
-          <small>{waDisplay}</small>
-        </span>
+        <span>হোয়াটসঅ্যাপ</span>
       </a>
 
       <a
         href={fbUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="floating-pill floating-fb"
-        aria-label="ফেসবুকে যোগাযোগ করুন"
-        title="ম্যাংগো গার্ডেন ফেসবুক পেজ"
+        className="floating-pill"
+        aria-label="ফেসবুক পেজে যোগাযোগ করুন"
         onClick={() => trackMessageAction({ channel: 'facebook', placement: 'floating_widget', siteSettings })}
       >
-        <span className="floating-icon-disc floating-fb-disc">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <span className="floating-icon-disc fb" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
           </svg>
-          <span className="floating-online-dot" aria-hidden="true" />
         </span>
-        <span className="floating-fb-label">ফেসবুকে মেসেজ দিন</span>
+        <span>ফেসবুক</span>
       </a>
     </aside>
   )
 }
 
-function buildCheckoutTrackingData(cartMap) {
-  const comboOption = orderOptions.find((o) => o.isCombo)
-  const kgOptions = orderOptions.filter((o) => !o.isCombo)
+/* ==========================================================================
+   VIDEO MODAL COMPONENT (FOR LIVE CRAFT PROCESS)
+   ========================================================================== */
+function VideoModal({ isOpen, onClose }) {
+  const videoRef = useRef(null)
 
-  const comboQty = Math.min(comboOption.max, Math.max(0, Math.floor(Number(cartMap[comboOption.id] || 0))))
-  const looseEntries = kgOptions
-    .map((opt) => ({
-      opt,
-      qty: Math.min(opt.max, Math.max(0, Math.floor(Number(cartMap[opt.id] || 0))))
-    }))
-    .filter((entry) => entry.qty > 0)
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, onClose])
 
-  const looseKg = looseEntries.reduce((sum, entry) => sum + entry.qty, 0)
-  const items = []
+  if (!isOpen) return null
 
-  if (comboQty > 0) {
-    items.push({
-      id: comboOption.id,
-      name: comboOption.label,
-      price: comboOption.price,
-      quantity: comboQty,
-      unit: comboOption.unit
-    })
-  }
-
-  looseEntries.forEach(({ opt, qty }) => {
-    items.push({
-      id: opt.id,
-      name: opt.label,
-      price: opt.price,
-      quantity: qty,
-      unit: opt.unit
-    })
-  })
-
-  if (looseKg >= FREE_BONUS_MIN_KG) {
-    items.push({
-      id: 'free-jhola-500g',
-      name: FREE_BONUS_ITEM_NAME,
-      price: 0,
-      quantity: 1,
-      unit: 'প্যাক'
-    })
-  }
-
-  const subtotal =
-    comboQty * comboOption.price +
-    looseEntries.reduce((sum, entry) => sum + entry.opt.price * entry.qty, 0)
-  const hasItems = comboQty > 0 || looseKg > 0
-  const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
-  const grandTotal = subtotal + delivery
-  const totalItems = comboQty + looseKg
-  const sig = `${items.map((it) => `${it.id}:${it.quantity}`).join('|')}@${grandTotal}`
-
-  return { items, totalItems, grandTotal, sig }
+  return (
+    <div className="modal" onClick={onClose} role="dialog" aria-modal="true" aria-label="খাঁটি গুড় তৈরির ভিডিও">
+      <div className="modal-card" style={{ maxWidth: '480px', padding: '16px' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <strong style={{ fontSize: '15px', color: '#2A1A12' }}>🔥 তাফালে রস জ্বাল দেওয়ার লাইভ ভিডিও</strong>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ padding: '4px', borderRadius: '50%', background: '#F5ECDD' }}
+            aria-label="বন্ধ করুন"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        <div style={{ borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+          <video
+            ref={videoRef}
+            src={BRAND_IMAGES.craftVideo}
+            controls
+            autoPlay
+            playsInline
+            style={{ width: '100%', display: 'block' }}
+          />
+        </div>
+      </div>
+    </div>
+  )
 }
 
+/* ==========================================================================
+   STOREFRONT MAIN CONTAINER
+   ========================================================================== */
 function Storefront({ onOpenAdmin, onOrderSuccess }) {
-  useReveal()
   const { siteSettings } = useCms() || {}
   const [selected, setSelected] = useState({ 'gur-combo-990': 1 })
+  const [activePreviewId, setActivePreviewId] = useState('gur-combo-990')
   const [stickyVisible, setStickyVisible] = useState(false)
-  const cartBadgeRef = useRef(null)
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
   const lastCheckoutSigRef = useRef('')
 
   useEffect(() => {
     const onScroll = () => {
+      const hero = document.getElementById('top')
       const order = document.getElementById('order')
+      const heroHeight = hero?.offsetHeight || 450
       const r = order?.getBoundingClientRect()
       const inOrder = r && r.top < window.innerHeight && r.bottom > 0
-      setStickyVisible(window.scrollY > 450 && !inOrder)
+      setStickyVisible(window.scrollY > heroHeight && !inOrder)
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -1188,7 +1107,59 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
   }, [])
 
   const fireBeginCheckout = (cartMap = selected) => {
-    const { items, totalItems, grandTotal, sig } = buildCheckoutTrackingData(cartMap)
+    const comboOption = orderOptions.find((o) => o.isCombo)
+    const kgOptions = orderOptions.filter((o) => !o.isCombo)
+
+    const comboQty = Math.min(comboOption.max, Math.max(0, Math.floor(Number(cartMap[comboOption.id] || 0))))
+    const looseEntries = kgOptions
+      .map((opt) => ({
+        opt,
+        qty: Math.min(opt.max, Math.max(0, Math.floor(Number(cartMap[opt.id] || 0))))
+      }))
+      .filter((entry) => entry.qty > 0)
+
+    const looseKg = looseEntries.reduce((sum, entry) => sum + entry.qty, 0)
+    const items = []
+
+    if (comboQty > 0) {
+      items.push({
+        id: comboOption.id,
+        name: comboOption.label,
+        price: comboOption.price,
+        quantity: comboQty,
+        unit: comboOption.unit
+      })
+    }
+
+    looseEntries.forEach(({ opt, qty }) => {
+      items.push({
+        id: opt.id,
+        name: opt.label,
+        price: opt.price,
+        quantity: qty,
+        unit: opt.unit
+      })
+    })
+
+    if (looseKg >= FREE_BONUS_MIN_KG) {
+      items.push({
+        id: 'free-jhola-500g',
+        name: FREE_BONUS_ITEM_NAME,
+        price: 0,
+        quantity: 1,
+        unit: 'প্যাক'
+      })
+    }
+
+    const subtotal =
+      comboQty * comboOption.price +
+      looseEntries.reduce((sum, entry) => sum + entry.opt.price * entry.qty, 0)
+    const hasItems = comboQty > 0 || looseKg > 0
+    const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
+    const grandTotal = subtotal + delivery
+    const totalItems = comboQty + looseKg
+    const sig = `${items.map((it) => `${it.id}:${it.quantity}`).join('|')}@${grandTotal}`
+
     if (totalItems <= 0 || !items.length) return
     if (lastCheckoutSigRef.current === sig) return
     lastCheckoutSigRef.current = sig
@@ -1220,7 +1191,7 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
       else next[id] = Math.min(limit, 1)
       return next
     })
-    pulseElement(cartBadgeRef.current)
+    setActivePreviewId(id)
   }
 
   const updateQty = (id, qty, max) => {
@@ -1232,7 +1203,7 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
       else next[id] = Math.min(limit, safeQty)
       return next
     })
-    pulseElement(cartBadgeRef.current)
+    setActivePreviewId(id)
   }
 
   const openCheckoutAndTrack = () => {
@@ -1247,7 +1218,7 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
       [id]: Math.min(limit, Math.max(1, selected[id] || 0))
     }
     setSelected(nextSelected)
-    pulseElement(cartBadgeRef.current)
+    setActivePreviewId(id)
     fireBeginCheckout(nextSelected)
     scrollToSection('order')
   }
@@ -1263,182 +1234,162 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
   const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
   const grandTotal = subtotal + delivery
   const totalItems = comboQty + looseKg
-  const { waE164, waDisplay } = resolveWhatsAppConfig(siteSettings)
 
   return (
     <>
-      <Header
+      <HeritageHeader
         totalItems={totalItems}
         grandTotal={grandTotal}
-        cartBadgeRef={cartBadgeRef}
         onOpenCheckout={openCheckoutAndTrack}
+        siteSettings={siteSettings}
       />
+
       <main>
-        <Hero onPickAndOrder={pickAndScrollToOrder} onOpenCheckout={openCheckoutAndTrack} />
-        <TrustStrip />
-        <LiveProcessVideo onPickAndOrder={pickAndScrollToOrder} />
-        <Combos comboQty={comboQty} onPickAndOrder={pickAndScrollToOrder} />
-        <CraftAndStory />
+        {/* 1. Hero (§4) */}
+        <HeroSection onPickAndOrder={pickAndScrollToOrder} />
+
+        <SectionDivider />
+
+        {/* 2. Menu Intro + Illustration (§5) */}
+        <MenuIntroSection
+          onPickAndOrder={pickAndScrollToOrder}
+          onOpenVideoModal={() => setVideoModalOpen(true)}
+        />
+
+        <SectionDivider />
+
+        {/* 3. Product Grid (§6) */}
+        <ProductGridSection onPickAndOrder={pickAndScrollToOrder} />
+
+        <SectionDivider />
+
+        {/* 4. Testimonials (§7) */}
         <CustomerReviews />
-        <OrderForm
+
+        <SectionDivider />
+
+        {/* 5. Delivery Promise (§8) */}
+        <DeliveryPromiseSection />
+
+        <SectionDivider />
+
+        {/* 6. Order Memo (§9) */}
+        <OrderMemoSection
           selected={selected}
           onToggleItem={toggleItem}
           onUpdateQty={updateQty}
           onResetCart={() => {
             lastCheckoutSigRef.current = ''
             setSelected({ 'gur-combo-990': 1 })
+            setActivePreviewId('gur-combo-990')
           }}
           onBeginCheckout={() => fireBeginCheckout(selected)}
           onOrderSuccess={onOrderSuccess}
+          activePreviewId={activePreviewId}
+          onSelectPreview={(id) => setActivePreviewId(id)}
         />
-        <FAQ />
       </main>
-      <footer className="footer">
-        <div className="footer-brand">
-          <img src={BRAND_IMAGES.logo} alt="ম্যাংগো গার্ডেন লোগো" className="footer-logo" />
-          <b>ম্যাংগো গার্ডেন</b>
-        </div>
-        <p>১০০% খাঁটি খেজুরের গুড় · {DELIVERY_START_NOTICE}</p>
-        <div className="footer-links">
-          <a
-            href={`https://wa.me/${waE164}?text=${encodeURIComponent('আসসালামু আলাইকুম ম্যাংগো গার্ডেন, খাঁটি খেজুরের গুড় সম্পর্কে জানতে / অর্ডার করতে চাচ্ছি।')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="footer-fb-pill footer-wa-pill"
-            onClick={() => trackMessageAction({ channel: 'whatsapp', placement: 'footer', siteSettings })}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-            </svg>
-            <span>হোয়াটসঅ্যাপ: {waDisplay}</span>
-          </a>
-          <a
-            href={siteSettings?.facebook_page || 'https://www.facebook.com/mangogardenbd1'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="footer-fb-pill"
-            onClick={() => trackMessageAction({ channel: 'facebook', placement: 'footer', siteSettings })}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-            <span>ফেসবুক পেজ ভিজিট করুন</span>
-          </a>
-        </div>
-        <div style={{ margin: '14px 0 8px' }}>
-          <button
-            type="button"
-            onClick={onOpenAdmin}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'rgba(255,255,255,0.45)',
-              fontSize: '12px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 10px',
-              borderRadius: '6px',
-              transition: 'color .2s, background .2s'
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-            onMouseOut={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; e.currentTarget.style.background = 'none' }}
-            title="অ্যাডমিন প্যানেল (অথবা প্রেস করুন Ctrl+Shift+A)"
-          >
-            ⚙️ অ্যাডমিন প্যানেল
-          </button>
-        </div>
-        <small>© {toBn(new Date().getFullYear())} ম্যাংগো গার্ডেন · সর্বস্বত্ব সংরক্ষিত</small>
-      </footer>
+
+      {/* 7. Footer (§10) */}
+      <HeritageFooter onOpenAdmin={onOpenAdmin} siteSettings={siteSettings} />
+
+      {/* Floating Dock & Sticky Bar (§11) */}
       <FloatingChatDock raised={stickyVisible} siteSettings={siteSettings} />
       <StickyBar
         show={stickyVisible}
         totalItems={totalItems}
         grandTotal={grandTotal}
-        hasFreeShipping={comboQty > 0}
         onOpenCheckout={openCheckoutAndTrack}
+      />
+
+      {/* Video Modal */}
+      <VideoModal
+        isOpen={videoModalOpen}
+        onClose={() => setVideoModalOpen(false)}
       />
     </>
   )
 }
 
+/* ==========================================================================
+   MAIN APP ROUTER
+   ========================================================================== */
 export default function App() {
   const [currentView, setCurrentView] = useState(() => {
     if (typeof window !== 'undefined') {
       if (window.location.hash === '#admin' || window.location.pathname.startsWith('/admin')) {
-        return 'admin';
+        return 'admin'
       }
       if (window.location.hash === '#success' || window.location.pathname.startsWith('/order-success')) {
-        return 'success';
+        return 'success'
       }
     }
-    return 'store';
-  });
+    return 'store'
+  })
 
   const [latestOrder, setLatestOrder] = useState(() => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined') return null
     try {
-      const saved = sessionStorage.getItem('mangogarden_last_order');
-      return saved ? JSON.parse(saved) : null;
+      const saved = sessionStorage.getItem('mangogarden_last_order')
+      return saved ? JSON.parse(saved) : null
     } catch (e) {
-      return null;
+      return null
     }
-  });
+  })
 
   useEffect(() => {
     const handleHash = () => {
       if (window.location.hash === '#admin' || window.location.pathname.startsWith('/admin')) {
-        setCurrentView('admin');
+        setCurrentView('admin')
       } else if (window.location.hash === '#success' || window.location.pathname.startsWith('/order-success')) {
-        setCurrentView('success');
+        setCurrentView('success')
       } else {
-        setCurrentView('store');
+        setCurrentView('store')
       }
-    };
+    }
 
     const handleKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
-        e.preventDefault();
-        navigateToAdmin();
+        e.preventDefault()
+        navigateToAdmin()
       }
-    };
+    }
 
-    window.addEventListener('hashchange', handleHash);
-    window.addEventListener('popstate', handleHash);
-    window.addEventListener('keydown', handleKey);
+    window.addEventListener('hashchange', handleHash)
+    window.addEventListener('popstate', handleHash)
+    window.addEventListener('keydown', handleKey)
     return () => {
-      window.removeEventListener('hashchange', handleHash);
-      window.removeEventListener('popstate', handleHash);
-      window.removeEventListener('keydown', handleKey);
-    };
-  }, []);
+      window.removeEventListener('hashchange', handleHash)
+      window.removeEventListener('popstate', handleHash)
+      window.removeEventListener('keydown', handleKey)
+    }
+  }, [])
 
   const navigateToAdmin = () => {
-    window.location.hash = 'admin';
-    setCurrentView('admin');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    window.location.hash = 'admin'
+    setCurrentView('admin')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const navigateToStore = () => {
-    window.location.hash = '';
-    setCurrentView('store');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    window.location.hash = ''
+    setCurrentView('store')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handleOrderSuccess = (orderData) => {
-    setLatestOrder(orderData);
+    setLatestOrder(orderData)
     try {
       if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem('mangogarden_last_order', JSON.stringify(orderData));
+        sessionStorage.setItem('mangogarden_last_order', JSON.stringify(orderData))
       }
     } catch (e) {
-      console.warn('sessionStorage save error:', e);
+      console.warn('sessionStorage save error:', e)
     }
-    window.location.hash = 'success';
-    setCurrentView('success');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    window.location.hash = 'success'
+    setCurrentView('success')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <CmsProvider>
@@ -1450,5 +1401,5 @@ export default function App() {
         <Storefront onOpenAdmin={navigateToAdmin} onOrderSuccess={handleOrderSuccess} />
       )}
     </CmsProvider>
-  );
+  )
 }
