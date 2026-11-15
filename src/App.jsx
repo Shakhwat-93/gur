@@ -952,15 +952,16 @@ function HeritageFooter({ onOpenAdmin, siteSettings }) {
 
         {/* Bottom Row */}
         <div className="footer-bottom-row">
-          <button
-            type="button"
-            className="admin-portal-link"
-            onClick={onOpenAdmin}
-            title="অ্যাডমিন প্যানেল (বা Ctrl+Shift+A প্রেস করুন)"
-          >
-            ⚙️ অ্যাডমিন প্যানেল
-          </button>
           <span>© {toBn(new Date().getFullYear())} ম্যাংগো গার্ডেন · সর্বস্বত্ব সংরক্ষিত</span>
+          <a
+            href="https://wa.me/8801540400247"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dev-credit-link"
+            title="Developed and Designed by Nexova"
+          >
+            Developed and Designed by <strong>Nexova</strong>
+          </a>
         </div>
       </div>
     </footer>
