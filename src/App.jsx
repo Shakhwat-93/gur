@@ -1,4 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+gsap.registerPlugin(useGSAP, ScrollTrigger)
 import {
   Truck,
   Gift,
@@ -120,8 +125,121 @@ function HeritageHeader({ totalItems, grandTotal, onOpenCheckout, siteSettings }
    2. SECTION 1: HERO (§4)
    ========================================================================== */
 function HeroSection({ onPickAndOrder }) {
+  const heroRef = useRef(null)
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia()
+
+    mm.add({
+      isReduced: '(prefers-reduced-motion: reduce)',
+      all: '(min-width: 0px)'
+    }, (context) => {
+      const { isReduced } = context.conditions
+
+      if (isReduced) {
+        gsap.set(
+          '.hero-brand-emblem, .hero-intro-line, .hero-title-line, .hero-visual-card, .stamp-badge, .hero-secondary-badge, .hero-subject-img, .hero-bar-info, .hero-bottom-bar .btn-primary',
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            clearProps: 'all'
+          }
+        )
+        return
+      }
+
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+
+      // 1. Emblem entrance: gentle scale + fade
+      tl.from('.hero-brand-emblem', {
+        scale: 0.65,
+        opacity: 0,
+        duration: 0.5,
+        ease: 'back.out(1.8)'
+      })
+
+      // 2. Intro lines fade up
+      tl.from('.hero-intro-line', {
+        y: 12,
+        opacity: 0,
+        duration: 0.4,
+        stagger: 0.08
+      }, '-=0.25')
+
+      // 3. Headline words/lines fade up with clean Bengali typography
+      tl.from('.hero-title-line', {
+        y: 22,
+        opacity: 0,
+        duration: 0.55,
+        stagger: 0.12,
+        ease: 'power2.out'
+      }, '-=0.2')
+
+      // 4. Hero Visual Card reveal
+      tl.from('.hero-visual-card', {
+        y: 26,
+        opacity: 0,
+        scale: 0.97,
+        duration: 0.6,
+        ease: 'power3.out'
+      }, '-=0.3')
+
+      // 5. Hero Subject photo rise
+      tl.from('.hero-subject-img', {
+        y: 35,
+        opacity: 0,
+        duration: 0.7,
+        ease: 'power2.out'
+      }, '-=0.4')
+
+      // 6. Season Stamp "stamp-in" feel (scale 1.35 -> 1 with rotation)
+      tl.from('.stamp-badge', {
+        scale: 1.35,
+        rotation: -18,
+        opacity: 0,
+        duration: 0.45,
+        ease: 'back.out(2)'
+      }, '-=0.35')
+
+      // 7. Secondary circular badge pop in
+      tl.from('.hero-secondary-badge', {
+        scale: 0,
+        opacity: 0,
+        duration: 0.4,
+        ease: 'back.out(2.2)'
+      }, '-=0.3')
+
+      // 8. Bottom bar items
+      tl.from('.hero-bar-info, .hero-bottom-bar .btn-primary', {
+        y: 10,
+        opacity: 0,
+        duration: 0.35,
+        stagger: 0.08
+      }, '-=0.2')
+
+      // 9. Continuous slow sunburst ambient rotation
+      gsap.to('.hero-sunburst-bg', {
+        rotation: 360,
+        duration: 65,
+        repeat: -1,
+        ease: 'none',
+        transformOrigin: 'center center'
+      })
+
+      // 10. Subtle floating motion for secondary badge
+      gsap.to('.hero-secondary-badge', {
+        y: -5,
+        duration: 2.4,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut'
+      })
+    })
+  }, { scope: heroRef })
+
   return (
-    <section className="hero-section" id="top">
+    <section className="hero-section" id="top" ref={heroRef}>
       <div className="container">
         {/* Emblem Logo */}
         <div className="hero-brand-emblem" aria-hidden="true">
@@ -130,14 +248,14 @@ function HeroSection({ onPickAndOrder }) {
 
         {/* Small Intro Line */}
         <p className="hero-intro-lines">
-          ম্যাংগো গার্ডেন · শীতের খাঁটি খেজুর গুড়<br />
-          চিনি ও কেমিক্যালমুক্ত শতভাগ বিশুদ্ধতার নিশ্চয়তা
+          <span className="hero-intro-line">ম্যাংগো গার্ডেন · শীতের খাঁটি খেজুর গুড়</span>
+          <span className="hero-intro-line">চিনি ও কেমিক্যালমুক্ত শতভাগ বিশুদ্ধতার নিশ্চয়তা</span>
         </p>
 
         {/* Headline in Bengali Calligraphy */}
         <h1 className="hero-main-title">
-          গাছির খাঁটি রসে তৈরি<br />
-          আসল খেজুরের গুড়
+          <span className="hero-title-line">গাছির খাঁটি রসে তৈরি</span>
+          <span className="hero-title-line">আসল খেজুরের গুড়</span>
         </h1>
 
         {/* Hero Visual Card */}
@@ -175,7 +293,7 @@ function HeroSection({ onPickAndOrder }) {
             <button
               type="button"
               className="btn-primary"
-              onClick={() => onPickAndOrder('gur-combo-990')}
+              onClick={(e) => onPickAndOrder('gur-combo-990', e)}
             >
               <span>অর্ডার করুন</span>
               <span className="btn-arrow-circle" aria-hidden="true">→</span>
@@ -191,8 +309,70 @@ function HeroSection({ onPickAndOrder }) {
    3. SECTION 2: MENU INTRO + ILLUSTRATION ("আজকের মেনু" §5)
    ========================================================================== */
 function MenuIntroSection({ onPickAndOrder, onOpenVideoModal }) {
+  const menuRef = useRef(null)
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia()
+
+    mm.add({
+      isReduced: '(prefers-reduced-motion: reduce)',
+      all: '(min-width: 0px)'
+    }, (context) => {
+      const { isReduced } = context.conditions
+
+      if (isReduced) {
+        gsap.set('.menu-heritage-svg path, .menu-heritage-svg line, .menu-mini-thumb', {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          clearProps: 'all'
+        })
+        return
+      }
+
+      const strokeElements = menuRef.current?.querySelectorAll('.menu-heritage-svg path, .menu-heritage-svg line')
+      if (strokeElements) {
+        strokeElements.forEach(el => {
+          const len = el.getTotalLength ? el.getTotalLength() : 300
+          gsap.set(el, { strokeDasharray: len, strokeDashoffset: len })
+        })
+      }
+
+      gsap.set('.menu-mini-thumb', { opacity: 0, scale: 0.85, y: 15 })
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: menuRef.current,
+          start: 'top 75%',
+          once: true
+        }
+      })
+
+      if (strokeElements && strokeElements.length) {
+        tl.to(strokeElements, {
+          strokeDashoffset: 0,
+          duration: 1.3,
+          stagger: {
+            each: 0.02,
+            from: 'start'
+          },
+          ease: 'power2.out'
+        })
+      }
+
+      tl.to('.menu-mini-thumb', {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.45,
+        stagger: 0.08,
+        ease: 'back.out(2)'
+      }, '-=0.4')
+    })
+  }, { scope: menuRef })
+
   return (
-    <section className="menu-intro-section" id="menu">
+    <section className="menu-intro-section" id="menu" ref={menuRef}>
       <div className="container">
         <div className="sec-header">
           <h2 className="sec-title">আজকের মেনু</h2>
@@ -211,28 +391,28 @@ function MenuIntroSection({ onPickAndOrder, onOpenVideoModal }) {
           <div className="menu-product-overlays">
             <div
               className="menu-mini-thumb"
-              onClick={() => onPickAndOrder('gur-combo-990')}
+              onClick={(e) => onPickAndOrder('gur-combo-990', e)}
               title="৯৯০৳ কম্বো প্যাকেজ"
             >
               <img src={BRAND_IMAGES.combo990} alt="কম্বো গুড়" />
             </div>
             <div
               className="menu-mini-thumb"
-              onClick={() => onPickAndOrder('gur-lali')}
+              onClick={(e) => onPickAndOrder('gur-lali', e)}
               title="লিকুইড বা লালি গুড়"
             >
               <img src="/img/IMG_8df5a126-73c7-4a1b-b32d-5c8caf3d6f24.jpg.jpeg" alt="লালি গুড়" />
             </div>
             <div
               className="menu-mini-thumb"
-              onClick={() => onPickAndOrder('gur-dana-jhola')}
+              onClick={(e) => onPickAndOrder('gur-dana-jhola', e)}
               title="দানা ঝোলা গুড়"
             >
               <img src="/img/IMG_bf2a2436-bacb-489e-81a2-ff49803c51b3.png" alt="দানা ঝোলা" />
             </div>
             <div
               className="menu-mini-thumb"
-              onClick={() => onPickAndOrder('gur-patali-pata')}
+              onClick={(e) => onPickAndOrder('gur-patali-pata', e)}
               title="পাটালি পাটা গুড়"
             >
               <img src="/img/received_868957752222465.jpeg" alt="পাটালি গুড়" />
@@ -262,9 +442,39 @@ function MenuIntroSection({ onPickAndOrder, onOpenVideoModal }) {
    ========================================================================== */
 function ProductGridSection({ onPickAndOrder }) {
   const combo = combos[0]
+  const gridSecRef = useRef(null)
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia()
+
+    mm.add({
+      isReduced: '(prefers-reduced-motion: reduce)',
+      all: '(min-width: 0px)'
+    }, (context) => {
+      const { isReduced } = context.conditions
+
+      if (isReduced) {
+        gsap.set('.product-card', { opacity: 1, y: 0, clearProps: 'all' })
+        return
+      }
+
+      gsap.from('.product-card', {
+        scrollTrigger: {
+          trigger: gridSecRef.current,
+          start: 'top 85%',
+          toggleActions: 'play none none none'
+        },
+        y: 35,
+        opacity: 0,
+        duration: 0.6,
+        stagger: 0.08,
+        ease: 'power2.out'
+      })
+    })
+  }, { scope: gridSecRef })
 
   return (
-    <section className="product-grid-section" id="products">
+    <section className="product-grid-section" id="products" ref={gridSecRef}>
       <div className="container">
         <div className="sec-header">
           <h2 className="sec-title">গুড়ের মূল্য তালিকা</h2>
@@ -305,7 +515,7 @@ function ProductGridSection({ onPickAndOrder }) {
               type="button"
               className="btn-primary btn-card"
               style={{ marginTop: '10px' }}
-              onClick={() => onPickAndOrder(combo.id)}
+              onClick={(e) => onPickAndOrder(combo.id, e)}
             >
               <span>অর্ডার করুন</span>
               <span className="btn-arrow-circle" aria-hidden="true">→</span>
@@ -333,7 +543,7 @@ function ProductGridSection({ onPickAndOrder }) {
               <button
                 type="button"
                 className="btn-primary btn-card"
-                onClick={() => onPickAndOrder(prod.id)}
+                onClick={(e) => onPickAndOrder(prod.id, e)}
               >
                 <span>অর্ডার করুন</span>
                 <span className="btn-arrow-circle" aria-hidden="true">→</span>
@@ -350,8 +560,90 @@ function ProductGridSection({ onPickAndOrder }) {
    5. SECTION 5: DELIVERY PROMISE ILLUSTRATION ("...আপনার ঘরে" §8)
    ========================================================================== */
 function DeliveryPromiseSection() {
+  const deliveryRef = useRef(null)
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia()
+
+    mm.add({
+      isReduced: '(prefers-reduced-motion: reduce)',
+      all: '(min-width: 0px)'
+    }, (context) => {
+      const { isReduced } = context.conditions
+
+      if (isReduced) {
+        gsap.set('.delivery-illustration-svg path, .delivery-illustration-svg line, .delivery-speech-bubble', {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          clearProps: 'all'
+        })
+        return
+      }
+
+      const strokeElements = deliveryRef.current?.querySelectorAll(
+        '.delivery-illustration-svg path, .delivery-illustration-svg line'
+      )
+      if (strokeElements) {
+        strokeElements.forEach(el => {
+          const len = el.getTotalLength ? el.getTotalLength() : 300
+          gsap.set(el, { strokeDasharray: len, strokeDashoffset: len })
+        })
+      }
+
+      gsap.set('.delivery-speech-bubble', { opacity: 0, scale: 0.88, y: 20 })
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: deliveryRef.current,
+          start: 'top 75%',
+          once: true
+        }
+      })
+
+      if (strokeElements && strokeElements.length) {
+        tl.to(strokeElements, {
+          strokeDashoffset: 0,
+          duration: 1.25,
+          stagger: {
+            each: 0.025,
+            from: 'start'
+          },
+          ease: 'power2.out'
+        })
+      }
+
+      tl.to('.delivery-speech-bubble', {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.55,
+        ease: 'back.out(1.7)'
+      }, '-=0.35')
+
+      // Van ambient loop
+      gsap.to('.delivery-van-group', {
+        x: -7,
+        duration: 1.6,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut'
+      })
+
+      // Smoke wisps ambient loop
+      gsap.to('.smoke-path', {
+        y: -5,
+        opacity: 0.9,
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut'
+      })
+    })
+  }, { scope: deliveryRef })
+
   return (
-    <section className="delivery-promise-section" id="delivery">
+    <section className="delivery-promise-section" id="delivery" ref={deliveryRef}>
       <div className="container">
         <div className="delivery-scene-card">
           <DeliveryHeritageIllustration />
@@ -421,6 +713,106 @@ function OrderMemoSection({
   const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
   const total = subtotal + delivery
 
+  // Live Total Number Tween
+  const [displayedTotal, setDisplayedTotal] = useState(total)
+  const totalTweenRef = useRef({ val: total })
+
+  useEffect(() => {
+    const obj = totalTweenRef.current
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (prefersReduced) {
+      setDisplayedTotal(total)
+      return
+    }
+
+    gsap.to(obj, {
+      val: total,
+      duration: 0.45,
+      ease: 'power2.out',
+      onUpdate: () => {
+        setDisplayedTotal(Math.round(obj.val))
+      }
+    })
+
+    const totalEl = document.querySelector('.total-amount')
+    if (totalEl) {
+      gsap.fromTo(totalEl, { scale: 1.12 }, { scale: 1, duration: 0.3, ease: 'power1.out' })
+    }
+  }, [total])
+
+  // Stepper quantity pulse
+  const handleStepperChange = (id, newQty, max) => {
+    onUpdateQty(id, newQty, max)
+    const numEl = document.getElementById(`stepper-qty-${id}`)
+    if (numEl) {
+      gsap.fromTo(
+        numEl,
+        { scale: 1.32, color: '#B8231C' },
+        { scale: 1, color: '#2A1A12', duration: 0.25, ease: 'back.out(2)' }
+      )
+    }
+  }
+
+  // Receipt Print Reveal & Seal Stamp via GSAP
+  useGSAP(() => {
+    const mm = gsap.matchMedia()
+
+    mm.add({
+      isReduced: '(prefers-reduced-motion: reduce)',
+      all: '(min-width: 0px)'
+    }, (context) => {
+      const { isReduced } = context.conditions
+
+      if (isReduced) {
+        gsap.set('.receipt-memo-card, .memo-header, .memo-two-col-grid, .memo-shop-seal', {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'all'
+        })
+        return
+      }
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 80%',
+          toggleActions: 'play none none none'
+        }
+      })
+
+      tl.from('.receipt-memo-card', {
+        y: 40,
+        opacity: 0,
+        duration: 0.75,
+        ease: 'power2.out'
+      })
+      .from('.memo-header', {
+        y: -15,
+        opacity: 0,
+        duration: 0.4,
+        ease: 'power2.out'
+      }, '-=0.4')
+      .from('.memo-left-col, .memo-right-col', {
+        y: 18,
+        opacity: 0,
+        stagger: 0.12,
+        duration: 0.5,
+        ease: 'power2.out'
+      }, '-=0.2')
+      .from('.memo-shop-seal', {
+        scale: 2.2,
+        rotation: -30,
+        opacity: 0,
+        duration: 0.55,
+        ease: 'back.out(2)'
+      }, '-=0.1')
+    })
+  }, { scope: sectionRef })
+
   // Current preview image
   const currentPreviewItem =
     orderOptions.find((o) => o.id === activePreviewId) || comboOption
@@ -446,6 +838,11 @@ function OrderMemoSection({
 
     if (!hasItems) {
       setOrderErr('অনুগ্রহ করে অন্তত একটি গুড় বা প্যাকেজ নির্বাচন করুন')
+      gsap.fromTo(
+        '.memo-product-list',
+        { x: -12 },
+        { x: 0, duration: 0.45, ease: 'elastic.out(1, 0.3)' }
+      )
       return
     }
 
@@ -455,7 +852,14 @@ function OrderMemoSection({
     if (!isValidBdPhone(normalizedPhone)) er.phone = 'সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 01XXXXXXXXX)'
     if (form.address.trim().length < 8) er.address = 'পূর্ণ ঠিকানা লিখুন (বাসা, রোড, থানা, জেলা)'
     setErr(er)
-    if (Object.keys(er).length) return
+    if (Object.keys(er).length) {
+      gsap.fromTo(
+        '.memo-fields-block',
+        { x: -12 },
+        { x: 0, duration: 0.45, ease: 'elastic.out(1, 0.3)' }
+      )
+      return
+    }
 
     beginCheckoutRef.current?.()
     setLoading(true)
@@ -627,7 +1031,10 @@ function OrderMemoSection({
                 {/* Product List */}
                 <div className="memo-product-list">
                   {/* 1. Combo Package Row */}
-                  <div className={`memo-product-row ${comboQty > 0 ? 'checked' : ''}`}>
+                  <div
+                    id={`memo-row-${comboOption.id}`}
+                    className={`memo-product-row ${comboQty > 0 ? 'checked' : ''}`}
+                  >
                     <div
                       className="memo-chk-box"
                       onClick={() => {
@@ -637,7 +1044,19 @@ function OrderMemoSection({
                       role="checkbox"
                       aria-checked={comboQty > 0}
                     >
-                      {comboQty > 0 ? '✓' : ''}
+                      <svg
+                        className={`memo-tick-svg ${comboQty > 0 ? 'checked' : ''}`}
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                     </div>
                     <div
                       className="memo-row-thumb"
@@ -655,15 +1074,17 @@ function OrderMemoSection({
                         <div className="memo-stepper">
                           <button
                             type="button"
-                            onClick={() => onUpdateQty(comboOption.id, comboQty - 1, comboOption.max)}
+                            onClick={() => handleStepperChange(comboOption.id, comboQty - 1, comboOption.max)}
                             aria-label="প্যাকেজ কমান"
                           >
                             −
                           </button>
-                          <span>{toBn(comboQty)} প্যাক</span>
+                          <span id={`stepper-qty-${comboOption.id}`} className="memo-stepper-val">
+                            {toBn(comboQty)} প্যাক
+                          </span>
                           <button
                             type="button"
-                            onClick={() => onUpdateQty(comboOption.id, comboQty + 1, comboOption.max)}
+                            onClick={() => handleStepperChange(comboOption.id, comboQty + 1, comboOption.max)}
                             disabled={comboQty >= comboOption.max}
                             aria-label="প্যাকেজ বাড়ান"
                           >
@@ -683,7 +1104,11 @@ function OrderMemoSection({
                     const isChecked = qty > 0
 
                     return (
-                      <div className={`memo-product-row ${isChecked ? 'checked' : ''}`} key={opt.id}>
+                      <div
+                        id={`memo-row-${opt.id}`}
+                        className={`memo-product-row ${isChecked ? 'checked' : ''}`}
+                        key={opt.id}
+                      >
                         <div
                           className="memo-chk-box"
                           onClick={() => {
@@ -693,7 +1118,19 @@ function OrderMemoSection({
                           role="checkbox"
                           aria-checked={isChecked}
                         >
-                          {isChecked ? '✓' : ''}
+                          <svg
+                            className={`memo-tick-svg ${isChecked ? 'checked' : ''}`}
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
                         </div>
                         <div
                           className="memo-row-thumb"
@@ -709,15 +1146,17 @@ function OrderMemoSection({
                             <div className="memo-stepper">
                               <button
                                 type="button"
-                                onClick={() => onUpdateQty(opt.id, qty - 1, opt.max)}
+                                onClick={() => handleStepperChange(opt.id, qty - 1, opt.max)}
                                 aria-label={`${opt.label} কমান`}
                               >
                                 −
                               </button>
-                              <span>{toBn(qty)} কেজি</span>
+                              <span id={`stepper-qty-${opt.id}`} className="memo-stepper-val">
+                                {toBn(qty)} কেজি
+                              </span>
                               <button
                                 type="button"
-                                onClick={() => onUpdateQty(opt.id, qty + 1, opt.max)}
+                                onClick={() => handleStepperChange(opt.id, qty + 1, opt.max)}
                                 disabled={qty >= opt.max}
                                 aria-label={`${opt.label} বাড়ান`}
                               >
@@ -829,7 +1268,7 @@ function OrderMemoSection({
 
                   <div className="memo-summary-row total-row">
                     <span>সর্বমোট পরিশোধযোগ্য</span>
-                    <span className="total-amount">৳{taka(total)}</span>
+                    <span className="total-amount">৳{taka(displayedTotal)}</span>
                   </div>
                 </div>
 
@@ -890,12 +1329,68 @@ function OrderMemoSection({
 /* ==========================================================================
    7. SECTION 7: HERITAGE FOOTER (§10)
    ========================================================================== */
+function ScrollProgressLine() {
+  const lineRef = useRef(null)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight
+      const progress = docHeight > 0 ? Math.min(1, Math.max(0, scrollY / docHeight)) : 0
+      if (lineRef.current) {
+        lineRef.current.style.transform = `scaleX(${progress})`
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  return <div className="scroll-progress-line" ref={lineRef} aria-hidden="true" />
+}
+
 function HeritageFooter({ onOpenAdmin, siteSettings }) {
   const { waE164, waDisplay } = resolveWhatsAppConfig(siteSettings)
   const phoneTel = waE164.startsWith('88') ? waE164.slice(2) : waE164
+  const footerRef = useRef(null)
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia()
+    mm.add({
+      isReduced: '(prefers-reduced-motion: reduce)',
+      all: '(min-width: 0px)'
+    }, (context) => {
+      const { isReduced } = context.conditions
+      if (isReduced) return
+
+      gsap.from('.footer-slogan-wrap, .footer-contact-pills', {
+        scrollTrigger: {
+          trigger: footerRef.current,
+          start: 'top 85%'
+        },
+        y: 25,
+        opacity: 0,
+        stagger: 0.15,
+        duration: 0.65,
+        ease: 'power2.out'
+      })
+
+      gsap.from('.footer-giant-wordmark', {
+        scrollTrigger: {
+          trigger: footerRef.current,
+          start: 'top 80%'
+        },
+        letterSpacing: '10px',
+        opacity: 0,
+        duration: 1.2,
+        ease: 'power2.out'
+      })
+    })
+  }, { scope: footerRef })
 
   return (
-    <footer className="heritage-footer" id="footer">
+    <footer className="heritage-footer" id="footer" ref={footerRef}>
       <WavyTopEdge />
 
       <div className="container footer-inner-content">
@@ -1212,7 +1707,7 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
     scrollToSection('order')
   }
 
-  const pickAndScrollToOrder = (id) => {
+  const pickAndScrollToOrder = (id, event) => {
     const limit = getOptionLimit(id)
     const nextSelected = {
       ...selected,
@@ -1221,7 +1716,85 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
     setSelected(nextSelected)
     setActivePreviewId(id)
     fireBeginCheckout(nextSelected)
-    scrollToSection('order')
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (prefersReducedMotion || !event) {
+      scrollToSection('order')
+      return
+    }
+
+    // Hand-off Fly-to-Cart Animation
+    const targetCard =
+      event.currentTarget?.closest?.('.product-card') ||
+      event.currentTarget?.closest?.('.featured-combo-content') ||
+      event.currentTarget?.closest?.('.menu-mini-thumb') ||
+      event.currentTarget?.closest?.('.hero-visual-card') ||
+      event.currentTarget?.closest?.('article')
+    const sourceImg = targetCard?.querySelector?.('img')
+
+    if (sourceImg && typeof document !== 'undefined') {
+      const imgRect = sourceImg.getBoundingClientRect()
+      const flyer = document.createElement('div')
+      flyer.className = 'fly-to-cart-particle'
+      flyer.style.cssText = `
+        position: fixed;
+        left: ${imgRect.left}px;
+        top: ${imgRect.top}px;
+        width: ${imgRect.width}px;
+        height: ${imgRect.height}px;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 16px 36px rgba(184, 35, 28, 0.45);
+        border: 2px solid #B8231C;
+        background: #FFFDF9;
+        z-index: 999999;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      `
+      const flyerInner = document.createElement('img')
+      flyerInner.src = sourceImg.src
+      flyerInner.alt = 'Flying product'
+      flyerInner.style.cssText = 'width: 100%; height: 100%; object-fit: contain; padding: 6px;'
+      flyer.appendChild(flyerInner)
+      document.body.appendChild(flyer)
+
+      // Start scrolling to order memo
+      scrollToSection('order')
+
+      const destX = window.innerWidth / 2 - (imgRect.left + imgRect.width / 2)
+      const destY = Math.min(window.innerHeight * 0.75, 420)
+
+      gsap.to(flyer, {
+        x: destX,
+        y: destY,
+        scale: 0.28,
+        rotation: 10,
+        opacity: 0,
+        duration: 0.65,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          flyer.remove()
+          // Highlight the selected row in memo after arrival
+          setTimeout(() => {
+            const row = document.getElementById(`memo-row-${id}`)
+            if (row) {
+              gsap.fromTo(
+                row,
+                { backgroundColor: 'rgba(184, 35, 28, 0.22)', scale: 1.025 },
+                { backgroundColor: 'transparent', scale: 1, duration: 0.85, ease: 'power2.out' }
+              )
+            }
+          }, 350)
+        }
+      })
+    } else {
+      scrollToSection('order')
+    }
   }
 
   const comboOption = orderOptions.find((o) => o.isCombo)
@@ -1238,6 +1811,7 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
 
   return (
     <>
+      <ScrollProgressLine />
       <HeritageHeader
         totalItems={totalItems}
         grandTotal={grandTotal}

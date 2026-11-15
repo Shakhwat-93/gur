@@ -202,10 +202,10 @@ export function DeliveryHeritageIllustration({ className = '' }) {
       </g>
 
       {/* Clay Oven / Chula (চুলা) with gentle smoke */}
-      <g transform="translate(145, 142)">
+      <g className="oven-smoke-group" transform="translate(145, 142)">
         <path d="M5 38 Q18 20 30 38 Z" fill="#F5ECDD" stroke="#B8231C" strokeWidth="1.6" />
         {/* Smoke wisps */}
-        <path d="M18 18 Q12 10 22 2 Q28 -4 20 -12" stroke="#B8231C" strokeWidth="1.2" strokeLinecap="round" strokeDasharray="4 3" strokeOpacity="0.7" />
+        <path className="smoke-path" d="M18 18 Q12 10 22 2 Q28 -4 20 -12" stroke="#B8231C" strokeWidth="1.2" strokeLinecap="round" strokeDasharray="4 3" strokeOpacity="0.7" />
       </g>
 
       {/* Distant palm tree behind cottage */}
@@ -215,7 +215,7 @@ export function DeliveryHeritageIllustration({ className = '' }) {
       </g>
 
       {/* Delivery Vehicle (Van / Parcel Runner) on right */}
-      <g transform="translate(245, 120)">
+      <g className="delivery-van-group" transform="translate(245, 120)">
         {/* Van Body */}
         <rect x="15" y="24" width="95" height="42" rx="4" fill="#FFFDF9" stroke="#B8231C" strokeWidth="1.8" />
         {/* Van Cab Front */}

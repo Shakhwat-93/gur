@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { gsap } from 'gsap';
 import { Phone, Check, Package, ArrowLeft, Copy } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { formatOrderCourierText } from '../lib/orderHelper';
@@ -9,6 +10,26 @@ export default function OrderSuccessPage({ order, onReturnHome }) {
   const { siteSettings } = useCms();
   const [copied, setCopied] = useState(false);
   const trackedRef = useRef(false);
+
+  // Success stamp animation runs once on mount with fromTo
+  useEffect(() => {
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!prefersReduced) {
+      gsap.fromTo(
+        '.success-receipt-card',
+        { y: 40, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out', clearProps: 'transform,opacity' }
+      );
+      gsap.fromTo(
+        '.success-check-badge',
+        { scale: 0, rotation: -45, opacity: 0 },
+        { scale: 1, rotation: 0, opacity: 1, duration: 0.65, delay: 0.1, ease: 'back.out(2)', clearProps: 'transform,opacity' }
+      );
+    }
+  }, []);
 
   // Trigger celebration confetti & fire Purchase tracking on mount exactly once
   useEffect(() => {
