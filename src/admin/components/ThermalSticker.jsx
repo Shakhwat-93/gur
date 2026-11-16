@@ -7,14 +7,14 @@ import './thermalPrint.css';
 export const THERMAL_PAPER_SIZES = {
   '100x100': {
     id: '100x100',
-    name: '4" × 4" (101.6mm × 101.6mm)',
-    label: '4" × 4" Roll (101.6×101.6mm)',
+    name: '4" × 4" (100mm × 100mm)',
+    label: '4" × 4" Roll (100×100mm)',
     shortName: '4" × 4"',
-    widthMm: 101.6,
-    heightMm: 101.6,
-    cssSize: '4in 4in',
-    maxItemsSinglePage: 8,
-    description: '4 ইঞ্চি বাই 4 ইঞ্চি পেপার রোল (স্কয়ার থার্মাল স্টিকার)'
+    widthMm: 100,
+    heightMm: 100,
+    cssSize: '100mm 100mm',
+    maxItemsSinglePage: 6,
+    description: '4 ইঞ্চি বাই 4 ইঞ্চি (100mm × 100mm) পেপার রোল'
   },
   '100x150': {
     id: '100x150',
@@ -263,22 +263,23 @@ export function SingleThermalStickerPage({
             </tr>
           </thead>
           <tbody>
-            {pageItems.map((item, idx) => (
-              <tr key={idx}>
-                <td>
-                  <div className="ts-item-name">{item.name}</div>
-                  <div className="ts-item-sub">
-                    {item.sku ? `SKU: ${item.sku}` : ''}
-                    {item.variant ? ` · ${item.variant}` : ''}
-                    {item.color ? ` · ${item.color}` : ''}
-                    {item.size ? ` · ${item.size}` : ''}
-                  </div>
-                </td>
-                <td className="num font-mono"><b>{item.quantity}</b></td>
-                <td className="num font-mono">৳{item.unitPrice}</td>
-                <td className="num font-mono"><b>৳{item.subtotal}</b></td>
-              </tr>
-            ))}
+            {pageItems.map((item, idx) => {
+              // Only display variant subtitle if it's meaningful and not already part of the name
+              const cleanVariant = item.variant && !item.name.includes(item.variant) ? item.variant : '';
+              return (
+                <tr key={idx}>
+                  <td>
+                    <div className="ts-item-name">
+                      {item.name}
+                      {cleanVariant && <span className="ts-item-variant-inline"> ({cleanVariant})</span>}
+                    </div>
+                  </td>
+                  <td className="num font-mono"><b>{item.quantity}</b></td>
+                  <td className="num font-mono">৳{item.unitPrice}</td>
+                  <td className="num font-mono"><b>৳{item.subtotal}</b></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
@@ -318,9 +319,9 @@ export function SingleThermalStickerPage({
         <div className="ts-barcode-col">
           <BarcodeRenderer
             value={orderId}
-            width={1.25}
-            height={28}
-            fontSize={9}
+            width={1.15}
+            height={20}
+            fontSize={8}
             displayValue={true}
           />
           <div className="ts-notice-text">
@@ -335,8 +336,8 @@ export function SingleThermalStickerPage({
         </div>
 
         <div className="ts-qr-col">
-          <QrCodeRenderer value={qrTrackingUrl} size={48} />
-          <span style={{ fontSize: '6px', fontWeight: 800, marginTop: '1px' }}>VERIFY</span>
+          <QrCodeRenderer value={qrTrackingUrl} size={36} />
+          <span style={{ fontSize: '5.5px', fontWeight: 800, marginTop: '1px' }}>VERIFY</span>
         </div>
       </div>
     </div>

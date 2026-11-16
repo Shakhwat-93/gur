@@ -78,18 +78,20 @@ export default function ThermalPrintModal({
     if (sizeCfg.id === '100x100') {
       styleEl.innerHTML = `
         @page {
-          size: 4in 4in;
-          margin: 0;
+          size: 100mm 100mm;
+          margin: 0mm !important;
         }
         @media print {
           html, body {
-            width: 4in !important;
-            height: 4in !important;
+            width: 100mm !important;
+            min-height: 100mm !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
           }
           #thermal-print-root {
-            width: 4in !important;
+            width: 100mm !important;
+            position: static !important;
           }
         }
       `;
@@ -97,17 +99,19 @@ export default function ThermalPrintModal({
       styleEl.innerHTML = `
         @page {
           size: ${sizeCfg.widthMm}mm ${sizeCfg.heightMm}mm;
-          margin: 0;
+          margin: 0mm !important;
         }
         @media print {
           html, body {
             width: ${sizeCfg.widthMm}mm !important;
-            height: ${sizeCfg.heightMm}mm !important;
+            min-height: ${sizeCfg.heightMm}mm !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
           }
           #thermal-print-root {
             width: ${sizeCfg.widthMm}mm !important;
+            position: static !important;
           }
         }
       `;

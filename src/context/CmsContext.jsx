@@ -332,6 +332,44 @@ export function CmsProvider({ children }) {
     }
   };
 
+  // MUTATION: Create Manual Order (Admin Panel)
+  const createManualOrder = async (orderPayload) => {
+    try {
+      let createdRecord = {
+        ...orderPayload,
+        created_at: orderPayload.created_at || new Date().toISOString()
+      };
+
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('orders')
+          .insert([orderPayload])
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          console.warn('[CmsContext] insert with select error, trying plain insert:', error);
+          const { error: plainErr } = await supabase.from('orders').insert([orderPayload]);
+          if (plainErr) throw plainErr;
+        } else if (data) {
+          createdRecord = data;
+        }
+      }
+
+      // Optimistically add to top of orders list
+      setOrders((prev) => [
+        createdRecord,
+        ...prev.filter((o) => (o.order_id || o.id) !== (createdRecord.order_id || createdRecord.id))
+      ]);
+      showToast('নতুন অর্ডার সফলভাবে তৈরি হয়েছে!');
+      return { success: true, order: createdRecord };
+    } catch (err) {
+      console.error('Create manual order error:', err);
+      showToast(err.message || 'অর্ডার তৈরি করতে ত্রুটি হয়েছে', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
   // MUTATION: Update Homepage Section
   const updateHomepageSection = async (sectionId, updates) => {
     try {
@@ -476,6 +514,7 @@ export function CmsProvider({ children }) {
         deleteProduct,
         updateOrderStatus,
         deleteOrder,
+        createManualOrder,
         updateHomepageSection,
         reorderHomepageSections,
         saveTestimonial,

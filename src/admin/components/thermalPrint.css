@@ -8,10 +8,10 @@
    High-Contrast Monochrome Layout for Direct Thermal (DT) Label Printers
    ============================================================================== */
 
-/* --- Default Page Media Rule for 4" × 4" Thermal Printers (dynamically overrideable) --- */
+/* --- Default Page Media Rule for 4" × 4" (100mm × 100mm) Thermal Printers --- */
 @page {
-  size: 4in 4in;
-  margin: 0;
+  size: 100mm 100mm;
+  margin: 0mm !important;
 }
 
 /* Off-screen Portal Print Container (hidden on screen) */
@@ -63,7 +63,7 @@
   height: 100mm;
   min-height: 100mm;
   max-height: 100mm;
-  padding: 2.8mm 3.4mm 2.2mm 3.4mm;
+  padding: 1.8mm 2.8mm 1.5mm 2.8mm;
 }
 
 /* 2. 150mm × 100mm / 4" × 6" COURIER PORTRAIT (100mm × 150mm) */
@@ -498,14 +498,19 @@
 /* ==============================================================================
    NATIVE PRINT MEDIA STYLES (@media print)
    Supports:
-   - 4" × 4" (101.6mm × 101.6mm) Paper Roll [Primary / Default]
+   - 4" × 4" (100mm × 100mm) Paper Roll [Primary / Default]
    - 150mm × 100mm Courier Portrait (4" × 6")
    - 150mm × 100mm Landscape
    - 75mm × 100mm Compact Roll
-   Zero Top-Margin Gap · Strict 4in × 4in Edge-to-Edge Print Alignment
+   Zero Top-Margin Gap · Strict 100mm × 100mm Edge-to-Edge Print Alignment
    ============================================================================== */
 
 @media print {
+  @page {
+    size: 100mm 100mm;
+    margin: 0mm !important;
+  }
+
   /* 1. Complete suppression of all screen app elements from layout */
   #root,
   .adm-backdrop,
@@ -532,26 +537,25 @@
     border: none !important;
     background: #ffffff !important;
     color: #000000 !important;
-    width: 4in !important;
-    height: 4in !important;
+    width: 100mm !important;
+    min-height: 100mm !important;
+    height: auto !important;
     overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* 3. Off-screen Portal Print Container (direct child of body) */
+  /* 3. Off-screen Portal Print Container (direct child of body)
+        STATIC flow starts directly at top edge 0,0 - eliminating Chrome absolute top-gap bug! */
   #thermal-print-root {
     display: block !important;
     visibility: visible !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
+    position: static !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 4in !important;
+    width: 100mm !important;
     box-sizing: border-box !important;
     background: #ffffff !important;
-    z-index: 999999 !important;
   }
 
   /* Fallback if legacy mount exists */
@@ -571,6 +575,7 @@
     border-radius: 0 !important;
     background: #ffffff !important;
     color: #000000 !important;
+    overflow: hidden !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     page-break-after: always !important;
@@ -579,16 +584,16 @@
     print-color-adjust: exact !important;
   }
 
-  /* --- 4A. Default 4" × 4" (101.6mm × 101.6mm) Paper Roll --- */
+  /* --- 4A. Default 4" × 4" (100mm × 100mm) Paper Roll --- */
   .thermal-sticker-page,
   .thermal-sticker-page.size-100x100 {
-    width: 4in !important;
-    height: 4in !important;
-    min-width: 4in !important;
-    max-width: 4in !important;
-    min-height: 4in !important;
-    max-height: 4in !important;
-    padding: 2.2mm 3.2mm 1.8mm 3.2mm !important;
+    width: 100mm !important;
+    height: 100mm !important;
+    min-width: 100mm !important;
+    max-width: 100mm !important;
+    min-height: 100mm !important;
+    max-height: 100mm !important;
+    padding: 1.8mm 2.8mm 1.5mm 2.8mm !important;
   }
 
   /* --- 4B. 150mm × 100mm Courier Portrait (100mm × 150mm / 4" × 6") --- */
@@ -599,7 +604,7 @@
     max-width: 100mm !important;
     min-height: 150mm !important;
     max-height: 150mm !important;
-    padding: 3.5mm 4mm 3mm 4mm !important;
+    padding: 3mm 3.5mm 2.5mm 3.5mm !important;
   }
 
   /* --- 4C. 150mm × 100mm Landscape --- */
@@ -610,7 +615,7 @@
     max-width: 150mm !important;
     min-height: 100mm !important;
     max-height: 100mm !important;
-    padding: 2.8mm 4mm 2.2mm 4mm !important;
+    padding: 2.5mm 3.5mm 2mm 3.5mm !important;
   }
 
   /* --- 4D. 75mm × 100mm Compact Roll --- */
@@ -621,7 +626,7 @@
     max-width: 75mm !important;
     min-height: 100mm !important;
     max-height: 100mm !important;
-    padding: 2.6mm 3mm 2mm 3mm !important;
+    padding: 2mm 2.5mm 1.8mm 2.5mm !important;
   }
 
   /* 5. Suppress page break on the very last sticker to eliminate trailing blank page */

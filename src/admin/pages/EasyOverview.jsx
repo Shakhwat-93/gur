@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, ArrowRight, Package, Clock, ShoppingBag, DollarSign, Copy, Check, Lock } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import PinModal from '../components/PinModal';
+import CreateOrderModal from '../components/CreateOrderModal';
 import { formatOrderCourierText } from '../../lib/orderHelper';
 
 export default function EasyOverview({ setActiveTab }) {
   const { orders, products, showToast } = useCms();
   const [isRevenueRevealed, setIsRevenueRevealed] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(null);
 
   const copyOrderDetails = (ord) => {
@@ -136,13 +138,28 @@ export default function EasyOverview({ setActiveTab }) {
               Latest customer purchases and order requests
             </p>
           </div>
-          <button
-            type="button"
-            className="easy-pill-link"
-            onClick={() => setActiveTab('orders')}
-          >
-            View All Orders →
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="easy-pill-link"
+              onClick={() => setIsCreateModalOpen(true)}
+              style={{
+                background: '#008060',
+                color: '#ffffff',
+                borderColor: '#008060',
+                fontWeight: 700
+              }}
+            >
+              + Create Order
+            </button>
+            <button
+              type="button"
+              className="easy-pill-link"
+              onClick={() => setActiveTab('orders')}
+            >
+              View All Orders →
+            </button>
+          </div>
         </div>
 
         {orders && orders.length > 0 ? (
@@ -227,6 +244,17 @@ export default function EasyOverview({ setActiveTab }) {
         onClose={() => setIsPinModalOpen(false)}
         onSuccess={handlePinSuccess}
       />
+
+      {/* Manual Order Creation Modal */}
+      {isCreateModalOpen && (
+        <CreateOrderModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onOrderCreated={() => {
+            setActiveTab('orders');
+          }}
+        />
+      )}
     </div>
   );
 }

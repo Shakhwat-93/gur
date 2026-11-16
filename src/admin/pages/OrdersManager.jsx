@@ -21,13 +21,15 @@ import {
   ChevronRight,
   ExternalLink,
   Printer,
-  CheckSquare
+  CheckSquare,
+  Plus
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { normalizeBdPhone } from '../../lib/phoneNormalizer';
 import { getEffectiveOrderQty, formatOrderCourierText } from '../../lib/orderHelper';
 import CourierStatsCard from '../../components/CourierStatsCard';
 import ThermalPrintModal from '../components/ThermalPrintModal';
+import CreateOrderModal from '../components/CreateOrderModal';
 import { isOrderPrinted } from '../lib/thermalPrintStorage';
 
 export default function OrdersManager() {
@@ -42,6 +44,9 @@ export default function OrdersManager() {
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [ordersToPrint, setOrdersToPrint] = useState([]);
   const [printedVersion, setPrintedVersion] = useState(0);
+
+  // Manual Order Creation Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // BD Courier checks map by normalized phone
   const [courierChecks, setCourierChecks] = useState({});
@@ -176,6 +181,16 @@ export default function OrdersManager() {
     if (!ord) return;
     setOrdersToPrint([ord]);
     setPrintModalOpen(true);
+  };
+
+  const handleOrderCreated = (newOrder) => {
+    if (newOrder?.phone) {
+      handleTriggerCourierCheck(newOrder);
+    }
+  };
+
+  const handleOpenPrintFromCreate = (newOrder) => {
+    handlePrintSingle(newOrder);
   };
 
   const handleBulkPrint = () => {
@@ -332,6 +347,28 @@ export default function OrdersManager() {
             Track customer orders, delivery status, and courier verification.
           </p>
         </div>
+
+        <button
+          type="button"
+          className="adm-btn adm-btn-primary"
+          onClick={() => setIsCreateModalOpen(true)}
+          style={{
+            background: '#008060',
+            borderColor: '#008060',
+            color: '#ffffff',
+            padding: '9px 18px',
+            fontSize: '13.5px',
+            fontWeight: 800,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(0, 128, 96, 0.25)',
+            cursor: 'pointer'
+          }}
+        >
+          <Plus size={16} />
+          <span>+ Create Order (নতুন অর্ডার)</span>
+        </button>
       </div>
 
       {/* Filter Tabs & Search Card */}
@@ -940,6 +977,16 @@ export default function OrdersManager() {
         siteSettings={siteSettings}
         onPrinted={() => setPrintedVersion(Date.now())}
       />
+
+      {/* 5. CREATE MANUAL ORDER MODAL */}
+      {isCreateModalOpen && (
+        <CreateOrderModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onOrderCreated={handleOrderCreated}
+          onOpenPrint={handleOpenPrintFromCreate}
+        />
+      )}
     </div>
   );
 }
