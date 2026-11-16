@@ -75,23 +75,28 @@ export default function ThermalPrintModal({
       document.head.appendChild(styleEl);
     }
 
-    if (sizeCfg.id === '100x100') {
+    if (sizeCfg.isContinuous) {
       styleEl.innerHTML = `
         @page {
-          size: 100mm 100mm;
+          size: ${sizeCfg.widthMm}mm auto;
           margin: 0mm !important;
         }
         @media print {
           html, body {
-            width: 100mm !important;
-            min-height: 100mm !important;
+            width: ${sizeCfg.widthMm}mm !important;
             height: auto !important;
+            min-height: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
           }
           #thermal-print-root {
-            width: 100mm !important;
+            width: ${sizeCfg.widthMm}mm !important;
             position: static !important;
+          }
+          .thermal-sticker-page {
+            width: ${sizeCfg.widthMm}mm !important;
+            height: auto !important;
+            min-height: 0 !important;
           }
         }
       `;
@@ -104,14 +109,18 @@ export default function ThermalPrintModal({
         @media print {
           html, body {
             width: ${sizeCfg.widthMm}mm !important;
-            min-height: ${sizeCfg.heightMm}mm !important;
-            height: auto !important;
+            height: ${sizeCfg.heightMm}mm !important;
             margin: 0 !important;
             padding: 0 !important;
           }
           #thermal-print-root {
             width: ${sizeCfg.widthMm}mm !important;
             position: static !important;
+          }
+          .thermal-sticker-page {
+            width: ${sizeCfg.widthMm}mm !important;
+            height: ${sizeCfg.heightMm}mm !important;
+            max-height: ${sizeCfg.heightMm}mm !important;
           }
         }
       `;
@@ -126,10 +135,18 @@ export default function ThermalPrintModal({
     setCopies(1);
   }, [isOpen, orders]);
 
-  // Clean up afterprint event
+  // Clean up afterprint event and clear temporary scaling
   useEffect(() => {
     const handleAfterPrint = () => {
       setIsPrinting(false);
+      const printRoot = document.getElementById('thermal-print-root');
+      if (printRoot) {
+        const stickerEls = printRoot.querySelectorAll('.thermal-sticker-page');
+        stickerEls.forEach((el) => {
+          el.style.transform = '';
+          el.style.transformOrigin = '';
+        });
+      }
     };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => {
@@ -153,6 +170,8 @@ export default function ThermalPrintModal({
     return acc + pages * validatedCopies;
   }, 0);
 
+  const activeSizeConfig = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
+
   const handlePrint = () => {
     if (isPrinting) return;
     setIsPrinting(true);
@@ -165,14 +184,140 @@ export default function ThermalPrintModal({
       onPrinted(ids);
     }
 
+    const sizeCfg = activeSizeConfig;
+    const printRoot = document.getElementById('thermal-print-root');
+    let styleEl = document.getElementById('thermal-dynamic-page-style');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'thermal-dynamic-page-style';
+      document.head.appendChild(styleEl);
+    }
+
+    if (printRoot) {
+      const stickerEls = printRoot.querySelectorAll('.thermal-sticker-page');
+      let maxStickerHeightPx = 0;
+      stickerEls.forEach((el) => {
+        // Reset previous inline styles before measurement
+        el.style.transform = '';
+        el.style.transformOrigin = '';
+        const rect = el.getBoundingClientRect();
+        const h = Math.max(rect.height, el.scrollHeight);
+        if (h > maxStickerHeightPx) maxStickerHeightPx = h;
+      });
+
+      // Convert px to mm (at 96 DPI: 1px = 25.4 / 96 = ~0.264583mm)
+      const measuredMm = Math.ceil((maxStickerHeightPx * 25.4) / 96);
+
+      if (sizeCfg.isContinuous) {
+        // Continuous roll printing: match page height exactly to content with safety buffer
+        const continuousHeightMm = Math.max(65, measuredMm + 2);
+        styleEl.innerHTML = `
+          @page {
+            size: ${sizeCfg.widthMm}mm ${continuousHeightMm}mm;
+            margin: 0mm !important;
+          }
+          @media print {
+            html, body {
+              width: ${sizeCfg.widthMm}mm !important;
+              height: auto !important;
+              min-height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            #thermal-print-root {
+              width: ${sizeCfg.widthMm}mm !important;
+            }
+            .thermal-sticker-page {
+              width: ${sizeCfg.widthMm}mm !important;
+              height: auto !important;
+              min-height: 0 !important;
+            }
+          }
+        `;
+      } else if (sizeCfg.id === '100x100') {
+        // Strict 100x100mm (4" x 4") die-cut label guarantee
+        // If content height exceeds 98mm, auto-scale down so it fits 100% inside 96mm
+        if (measuredMm > 98) {
+          const scaleRatio = Math.max(0.68, Number((96 / measuredMm).toFixed(3)));
+          stickerEls.forEach((el) => {
+            el.style.transform = `scale(${scaleRatio})`;
+            el.style.transformOrigin = 'top center';
+          });
+        }
+        styleEl.innerHTML = `
+          @page {
+            size: 100mm 100mm;
+            margin: 0mm !important;
+          }
+          @media print {
+            html, body {
+              width: 100mm !important;
+              height: 100mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            #thermal-print-root {
+              width: 100mm !important;
+            }
+            .thermal-sticker-page {
+              width: 100mm !important;
+              height: 100mm !important;
+              max-height: 100mm !important;
+              overflow: hidden !important;
+            }
+          }
+        `;
+      } else {
+        // Fixed dimensions (100x150, 75x100)
+        const targetH = sizeCfg.heightMm;
+        if (measuredMm > targetH - 2) {
+          const scaleRatio = Math.max(0.68, Number(((targetH - 4) / measuredMm).toFixed(3)));
+          stickerEls.forEach((el) => {
+            el.style.transform = `scale(${scaleRatio})`;
+            el.style.transformOrigin = 'top center';
+          });
+        }
+        styleEl.innerHTML = `
+          @page {
+            size: ${sizeCfg.widthMm}mm ${targetH}mm;
+            margin: 0mm !important;
+          }
+          @media print {
+            html, body {
+              width: ${sizeCfg.widthMm}mm !important;
+              height: ${targetH}mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            #thermal-print-root {
+              width: ${sizeCfg.widthMm}mm !important;
+            }
+            .thermal-sticker-page {
+              width: ${sizeCfg.widthMm}mm !important;
+              height: ${targetH}mm !important;
+              max-height: ${targetH}mm !important;
+              overflow: hidden !important;
+            }
+          }
+        `;
+      }
+    }
+
     // Trigger native browser print dialog safely
     setTimeout(() => {
       window.print();
-      setTimeout(() => setIsPrinting(false), 1200);
+      setTimeout(() => {
+        setIsPrinting(false);
+        if (printRoot) {
+          const stickerEls = printRoot.querySelectorAll('.thermal-sticker-page');
+          stickerEls.forEach((el) => {
+            el.style.transform = '';
+            el.style.transformOrigin = '';
+          });
+        }
+      }, 1200);
     }, 120);
   };
-
-  const activeSizeConfig = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
 
   return (
     <div

@@ -12,31 +12,48 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '4" × 4"',
     widthMm: 100,
     heightMm: 100,
-    cssSize: '100mm 100mm',
-    maxItemsSinglePage: 6,
-    description: '4 ইঞ্চি বাই 4 ইঞ্চি (100mm × 100mm) পেপার রোল'
+    isContinuous: false,
+    description: '4 ইঞ্চি বাই 4 ইঞ্চি (100mm × 100mm) স্টিকার রোল'
+  },
+  'continuous': {
+    id: 'continuous',
+    name: '100mm Continuous Roll (Auto-Height)',
+    label: '100mm Continuous (Auto)',
+    shortName: '100mm Auto',
+    widthMm: 100,
+    heightMm: 'auto',
+    isContinuous: true,
+    description: '100mm রসিদ রোল (যত আইটেমই থাকুক ১ পেজে একটানা প্রিন্ট)'
   },
   '100x150': {
     id: '100x150',
-    name: '150mm × 100mm / 4" × 6" (Courier Portrait)',
-    label: '150mm × 100mm (4" × 6")',
-    shortName: '150×100mm',
+    name: '100mm × 150mm / 4" × 6" (Courier Portrait)',
+    label: '100mm × 150mm (4" × 6")',
+    shortName: '4" × 6"',
     widthMm: 100,
     heightMm: 150,
-    cssSize: '100mm 150mm',
-    maxItemsSinglePage: 12,
-    description: '150mm × 100mm লম্বা কুরিয়ার শিপিং লেবেল'
+    isContinuous: false,
+    description: '150mm লম্বা কুরিয়ার শিপিং লেবেল'
   },
-  '150x100': {
-    id: '150x100',
-    name: '150mm × 100mm (Landscape 6" × 4")',
-    label: '150×100mm Landscape',
-    shortName: '150×100mm L',
-    widthMm: 150,
-    heightMm: 100,
-    cssSize: '150mm 100mm',
-    maxItemsSinglePage: 8,
-    description: '150mm চওড়া ল্যান্ডস্কেপ থার্মাল লেবেল'
+  '80mm': {
+    id: '80mm',
+    name: '80mm POS Thermal Receipt',
+    label: '80mm POS Receipt',
+    shortName: '80mm POS',
+    widthMm: 80,
+    heightMm: 'auto',
+    isContinuous: true,
+    description: 'স্ট্যান্ডার্ড 80mm থার্মাল পিওএস রসিদ পেপার'
+  },
+  '58mm': {
+    id: '58mm',
+    name: '58mm Mini POS Thermal Receipt',
+    label: '58mm POS Receipt',
+    shortName: '58mm POS',
+    widthMm: 58,
+    heightMm: 'auto',
+    isContinuous: true,
+    description: 'ছোট 58mm ব্লুটুথ থার্মাল রসিদ পেপার'
   },
   '75x100': {
     id: '75x100',
@@ -45,8 +62,7 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '75×100mm',
     widthMm: 75,
     heightMm: 100,
-    cssSize: '75mm 100mm',
-    maxItemsSinglePage: 5,
+    isContinuous: false,
     description: 'ছোট ৩ ইঞ্চি থার্মাল পেপার রোল'
   }
 };
@@ -94,42 +110,24 @@ export function getOrderItems(order) {
 }
 
 /**
- * Splits items into pages if an order has more products than fits on one sticker.
- * Dynamically adjusts max items per sticker based on selected paper size:
- * - 4" × 4" (100mm × 100mm): up to 8 items on 1 page without pagination
- * - 150mm × 100mm (100×150mm): up to 12 items on 1 page
- * - 75mm × 100mm: up to 5 items on 1 page
+ * Slices order items into a single unified invoice array.
+ * Ensures the entire invoice, all products, total amount, COD, and barcode/QR
+ * permanently stay together on ONE single thermal invoice page.
  */
-export function chunkOrderItems(items, paperSizeId = DEFAULT_PAPER_SIZE) {
+export function chunkOrderItems(items) {
   if (!items || items.length === 0) return [[]];
-  const sizeConfig = THERMAL_PAPER_SIZES[paperSizeId] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
-  const maxItems = sizeConfig.maxItemsSinglePage || 8;
-
-  if (items.length <= maxItems) {
-    return [items];
-  }
-
-  const pages = [];
-  const firstPageLimit = maxItems - 1;
-  pages.push(items.slice(0, firstPageLimit));
-
-  let cursor = firstPageLimit;
-  while (cursor < items.length) {
-    pages.push(items.slice(cursor, cursor + maxItems));
-    cursor += maxItems;
-  }
-  return pages;
+  return [items];
 }
 
 /**
- * Single Direct Thermal Sticker Page
+ * Single Direct Thermal Sticker / Invoice Page Component
  */
 export function SingleThermalStickerPage({
   order,
   siteSettings,
   pageItems,
-  pageIndex,
-  totalPages,
+  pageIndex = 0,
+  totalPages = 1,
   copyIndex = 1,
   totalCopies = 1,
   paperSize = DEFAULT_PAPER_SIZE,
@@ -140,11 +138,19 @@ export function SingleThermalStickerPage({
   const sizeConfig = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
   const itemCount = pageItems.length;
   const densityClass =
-    itemCount <= 3
+    itemCount <= 2
       ? 'ts-density-spacious'
       : itemCount <= 5
       ? 'ts-density-medium'
-      : 'ts-density-compact';
+      : itemCount <= 8
+      ? 'ts-density-compact'
+      : 'ts-density-ultra-compact';
+
+  const is58mm = paperSize === '58mm';
+  const is80mm = paperSize === '80mm';
+  const barcodeWidth = is58mm ? 0.95 : is80mm ? 1.05 : 1.15;
+  const barcodeHeight = is58mm ? 14 : is80mm ? 16 : 18;
+  const qrSize = is58mm ? 26 : is80mm ? 28 : 32;
 
   const storeName = siteSettings?.store_name || 'ম্যাংগো গার্ডেন';
   const storeLogo = siteSettings?.logo_url || '/img/logo.jpg';
@@ -290,54 +296,57 @@ export function SingleThermalStickerPage({
         )}
       </div>
 
-      {/* 4. PAYMENT & SUMMARY SECTION (Show summary on last page, or total line on continuation) */}
-      <div className="ts-summary-wrap">
-        <div className="ts-calc-rows">
-          <div className="ts-calc-left">
-            <span>Subtotal: ৳{subtotal}</span>
-            <span>Delivery: {deliveryFee === 0 ? 'FREE' : `৳${deliveryFee}`}</span>
-            {discount > 0 && <span>Disc: -৳{discount}</span>}
+      {/* 4 & 5. ATOMIC BOTTOM CLUSTER (Summary + COD + Barcode + QR Code)
+          Glued together with break-inside: avoid and break-before: avoid to guarantee
+          that Barcode and QR code NEVER get pushed to a second page! */}
+      <div className="ts-bottom-cluster">
+        {/* PAYMENT & SUMMARY SECTION */}
+        <div className="ts-summary-wrap">
+          <div className="ts-calc-rows">
+            <div className="ts-calc-left">
+              <span>Subtotal: ৳{subtotal}</span>
+              <span>Delivery: {deliveryFee === 0 ? 'FREE' : `৳${deliveryFee}`}</span>
+              {discount > 0 && <span>Disc: -৳{discount}</span>}
+            </div>
+            <div style={{ fontFamily: 'monospace', fontWeight: 900 }}>
+              Total: ৳{totalPrice}
+            </div>
           </div>
-          <div style={{ fontFamily: 'monospace', fontWeight: 900 }}>
-            Total: ৳{totalPrice}
+
+          {/* High-visibility Inverted COD banner */}
+          <div className={`ts-cod-banner ${isPaid ? 'paid' : ''}`}>
+            <div className="ts-cod-label">
+              {isPaid ? '✓ PAID IN FULL · NO CASH TO COLLECT' : '★ CASH ON DELIVERY (COD):'}
+            </div>
+            <div className="ts-cod-amount">
+              {isPaid ? '৳ 0 DUE' : `৳ ${dueAmount}`}
+            </div>
           </div>
         </div>
 
-        {/* High-visibility Inverted COD banner */}
-        <div className={`ts-cod-banner ${isPaid ? 'paid' : ''}`}>
-          <div className="ts-cod-label">
-            {isPaid ? '✓ PAID IN FULL · NO CASH TO COLLECT' : '★ CASH ON DELIVERY (COD):'}
+        {/* FOOTER & BARCODE SECTION */}
+        <div className="ts-footer">
+          <div className="ts-barcode-col">
+            <BarcodeRenderer
+              value={orderId}
+              width={barcodeWidth}
+              height={barcodeHeight}
+              fontSize={is58mm ? 6.5 : 7.5}
+              displayValue={true}
+            />
+            <div className="ts-notice-text">
+              জরুরি প্রয়োজনে: {storePhone} · পার্সেল চেক করে বুঝে নিন
+            </div>
+            <div className="ts-meta-sub">
+              <span>Mango Garden Official</span>
+              <span>Page 1/1</span>
+            </div>
           </div>
-          <div className="ts-cod-amount">
-            {isPaid ? '৳ 0 DUE' : `৳ ${dueAmount}`}
-          </div>
-        </div>
-      </div>
 
-      {/* 5. FOOTER & BARCODE SECTION */}
-      <div className="ts-footer">
-        <div className="ts-barcode-col">
-          <BarcodeRenderer
-            value={orderId}
-            width={1.15}
-            height={20}
-            fontSize={8}
-            displayValue={true}
-          />
-          <div className="ts-notice-text">
-            জরুরি প্রয়োজনে: {storePhone} · পার্সেল চেক করে বুঝে নিন
+          <div className="ts-qr-col">
+            <QrCodeRenderer value={qrTrackingUrl} size={qrSize} />
+            <span style={{ fontSize: '5.5px', fontWeight: 800, marginTop: '1px' }}>VERIFY</span>
           </div>
-          <div className="ts-meta-sub">
-            <span>Mango Garden Official</span>
-            <span>
-              Page {pageIndex + 1}/{totalPages}
-            </span>
-          </div>
-        </div>
-
-        <div className="ts-qr-col">
-          <QrCodeRenderer value={qrTrackingUrl} size={36} />
-          <span style={{ fontSize: '5.5px', fontWeight: 800, marginTop: '1px' }}>VERIFY</span>
         </div>
       </div>
     </div>
