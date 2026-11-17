@@ -212,6 +212,38 @@ export function login(emailOrPasscode, maybePassword, maybeRememberMe) {
 }
 
 /**
+ * Returns the active session token string if authenticated
+ */
+export function getSessionToken() {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return '';
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return '';
+    const session = JSON.parse(raw);
+    if (!session || !session.token || !session.expiresAt) return '';
+    if (Date.now() > session.expiresAt) {
+      logout();
+      return '';
+    }
+    return session.token;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Returns standard auth headers for protected server-side admin API calls
+ */
+export function getAdminAuthHeaders(extra = {}) {
+  const token = getSessionToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'X-Admin-Token': token } : {}),
+    ...extra
+  };
+}
+
+/**
  * Logs out and clears active admin session
  */
 export function logout() {
@@ -225,6 +257,8 @@ export function logout() {
 export default {
   ADMIN_CREDENTIALS,
   isAuthenticated,
+  getSessionToken,
+  getAdminAuthHeaders,
   getLockoutState,
   recordFailedAttempt,
   clearFailedAttempts,

@@ -1,16 +1,19 @@
 /* ==============================================================================
-   THERMAL ORDER STICKER PRINTING SYSTEM
+   THERMAL ORDER STICKER PRINTING SYSTEM — FULL-AREA 4" × 4" EDITION
    Supports:
-   - 4" × 4" (100mm × 100mm) Paper Roll [Default]
-   - 150mm × 100mm / 4" × 6" (100mm × 150mm Courier Standard)
-   - 150mm × 100mm (Landscape 6" × 4")
+   - 4" × 4" (101.6mm × 101.6mm) Full-Area Die-Cut Sticker Roll [Default]
+   - 100mm Continuous Roll (Auto-Height)
+   - 4" × 6" (101.6mm × 152.4mm Courier Portrait)
+   - 80mm POS Thermal Receipt
+   - 58mm Mini POS Thermal Receipt
    - 75mm × 100mm (3" × 4" Compact)
-   High-Contrast Monochrome Layout for Direct Thermal (DT) Label Printers
+   High-Contrast Monochrome Layout for 203/300 DPI Direct Thermal (DT) Printers
    ============================================================================== */
 
 /* --- Default Page Media Rule for Thermal Printers --- */
 @page {
-  margin: 0mm !important;
+  size: 4in 4in;
+  margin: 0 !important;
 }
 
 /* Off-screen Portal Print Container (hidden on screen) */
@@ -38,31 +41,33 @@
 }
 
 /* Base Thermal Sticker Canvas */
-.thermal-sticker-page {
+.thermal-sticker-page,
+.shipping-label {
   box-sizing: border-box;
   background: #ffffff;
   color: #000000;
-  font-family: 'Anek Bangla', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Hind Siliguri', 'Anek Bangla', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   overflow: hidden;
   position: relative;
   border: 1px solid #000000;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   border-radius: 3px;
+  line-height: 1.2;
 }
 
-/* 1. DEFAULT 4" × 4" PAPER ROLL (100mm × 100mm) */
+/* 1. DEFAULT 4" × 4" STICKER ROLL (4in × 4in / 101.6mm × 101.6mm) */
 .thermal-sticker-page,
 .thermal-sticker-page.size-100x100 {
-  width: 100mm;
-  min-width: 100mm;
-  max-width: 100mm;
-  height: 100mm;
-  min-height: 100mm;
-  max-height: 100mm;
-  padding: 1.5mm 2.5mm 1.2mm 2.5mm;
+  width: 4in;
+  min-width: 4in;
+  max-width: 4in;
+  height: 4in;
+  min-height: 4in;
+  max-height: 4in;
+  padding: 2mm 2.8mm 2mm 2.8mm;
 }
 
 /* 2. CONTINUOUS 100mm PAPER ROLL (Auto Height) */
@@ -71,20 +76,20 @@
   min-width: 100mm;
   max-width: 100mm;
   height: auto;
-  min-height: 80mm;
+  min-height: 85mm;
   max-height: none;
-  padding: 1.8mm 2.8mm 1.5mm 2.8mm;
+  padding: 2mm 2.8mm 2mm 2.8mm;
 }
 
-/* 3. 150mm × 100mm / 4" × 6" COURIER PORTRAIT (100mm × 150mm) */
+/* 3. 4" × 6" COURIER PORTRAIT (4in × 6in / 101.6mm × 152.4mm) */
 .thermal-sticker-page.size-100x150 {
-  width: 100mm;
-  min-width: 100mm;
-  max-width: 100mm;
-  height: 150mm;
-  min-height: 150mm;
-  max-height: 150mm;
-  padding: 3mm 3.5mm 2.5mm 3.5mm;
+  width: 4in;
+  min-width: 4in;
+  max-width: 4in;
+  height: 6in;
+  min-height: 6in;
+  max-height: 6in;
+  padding: 3.5mm 4mm 3mm 4mm;
 }
 
 /* 4. 80mm POS THERMAL PAPER */
@@ -93,10 +98,9 @@
   min-width: 80mm;
   max-width: 80mm;
   height: auto;
-  min-height: 70mm;
+  min-height: 75mm;
   max-height: none;
-  padding: 1.5mm 2.2mm 1.2mm 2.2mm;
-  font-size: 8.5px;
+  padding: 1.8mm 2.2mm 1.8mm 2.2mm;
 }
 
 /* 5. 58mm MINI POS THERMAL PAPER */
@@ -105,10 +109,9 @@
   min-width: 58mm;
   max-width: 58mm;
   height: auto;
-  min-height: 60mm;
+  min-height: 65mm;
   max-height: none;
-  padding: 1mm 1.8mm 1mm 1.8mm;
-  font-size: 8px;
+  padding: 1.2mm 1.8mm 1.2mm 1.8mm;
 }
 
 /* 6. 75mm × 100mm (3" × 4" COMPACT ROLL) */
@@ -119,7 +122,7 @@
   height: 100mm;
   min-height: 100mm;
   max-height: 100mm;
-  padding: 1.8mm 2.2mm 1.5mm 2.2mm;
+  padding: 1.8mm 2.2mm 1.6mm 2.2mm;
 }
 
 /* Screen thermal roll simulation */
@@ -133,19 +136,23 @@
   display: inline-block;
   background: #000000;
   color: #ffffff;
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 800;
-  padding: 1px 4px;
+  padding: 1.5px 5px;
   border-radius: 2px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+/* ==============================================================================
+   BASE SECTION TYPOGRAPHY & LAYOUT (Calibrated for 4" × 4" Medium / 3–5 Items)
+   ============================================================================== */
+
 /* --- 1. HEADER SECTION --- */
 .ts-header {
-  border-bottom: 1.2px solid #000000;
-  padding-bottom: 1.2mm;
-  margin-bottom: 1mm;
+  border-bottom: 1.6px solid #000000;
+  padding-bottom: 4px;
+  margin-bottom: 5px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -156,28 +163,30 @@
 .ts-brand-col {
   display: flex;
   align-items: center;
-  gap: 5px;
-  max-width: 58%;
+  gap: 6px;
+  max-width: 56%;
 }
 
 .ts-logo-img {
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   object-fit: cover;
   border-radius: 3px;
   filter: grayscale(100%) contrast(150%);
-  border: 1px solid #000000;
+  border: 1.2px solid #000000;
   flex-shrink: 0;
+  display: block;
 }
 
 .ts-brand-text {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
+  min-width: 0;
 }
 
 .ts-store-name {
-  font-size: 12px;
+  font-size: 15.5px;
   font-weight: 800;
   color: #000000;
   white-space: nowrap;
@@ -186,46 +195,59 @@
 }
 
 .ts-label-type {
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
   color: #000000;
   text-transform: uppercase;
+  margin-top: 1px;
 }
 
 .ts-order-col {
   text-align: right;
-  max-width: 42%;
+  max-width: 44%;
+  flex-shrink: 0;
 }
 
 .ts-order-pill {
   background: #000000;
   color: #ffffff;
-  padding: 1.5px 4.5px;
+  padding: 2px 5.5px;
   border-radius: 2px;
-  font-size: 7.5px;
+  font-size: 8.5px;
   font-weight: 800;
   letter-spacing: 0.4px;
   display: inline-block;
   text-transform: uppercase;
+  line-height: 1.1;
 }
 
 .ts-order-id-large {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 900;
   color: #000000;
   line-height: 1.15;
-  margin-top: 1px;
+  margin-top: 2px;
   word-break: break-all;
+}
+
+.ts-tracking-sub {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 8px;
+  font-weight: 800;
+  color: #000000;
+  line-height: 1.1;
+  margin-top: 1px;
+  letter-spacing: 0.2px;
 }
 
 /* --- 2. CUSTOMER INFORMATION BOX --- */
 .ts-customer-box {
-  border: 1.1px solid #000000;
-  border-radius: 2px;
-  padding: 1mm 1.8mm;
-  margin-bottom: 1mm;
+  border: 1.4px solid #000000;
+  border-radius: 3px;
+  padding: 4.5px 7px;
+  margin-bottom: 5px;
   background: #ffffff;
   flex-shrink: 0;
 }
@@ -234,10 +256,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 0.8px solid #000000;
-  padding-bottom: 1px;
-  margin-bottom: 1.5px;
-  font-size: 7px;
+  border-bottom: 1px solid #000000;
+  padding-bottom: 2px;
+  margin-bottom: 3px;
+  font-size: 8px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -252,7 +274,7 @@
 }
 
 .ts-cust-name {
-  font-size: 10.5px;
+  font-size: 13.5px;
   font-weight: 800;
   color: #000000;
   line-height: 1.2;
@@ -265,7 +287,7 @@
 
 .ts-cust-phone {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 900;
   color: #000000;
   white-space: nowrap;
@@ -273,11 +295,11 @@
 }
 
 .ts-cust-address {
-  font-size: 8.5px;
+  font-size: 10.5px;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.28;
   color: #000000;
-  margin-top: 1.5px;
+  margin-top: 2.5px;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -287,47 +309,51 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 7.5px;
+  font-size: 8.8px;
   font-weight: 700;
-  margin-top: 1.5px;
-  border-top: 0.5px dashed #000000;
-  padding-top: 1.5px;
+  margin-top: 3px;
+  border-top: 0.8px dashed #000000;
+  padding-top: 2.5px;
 }
 
 .ts-zone-badge {
   background: #000000;
   color: #ffffff;
-  padding: 0 3px;
+  padding: 1px 4.5px;
   border-radius: 2px;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 800;
+  line-height: 1.1;
 }
 
 /* --- 3. PRODUCT INFORMATION TABLE --- */
 .ts-items-section {
   flex: 1 1 auto;
   min-height: 0;
-  margin-bottom: 1mm;
+  margin-bottom: 4px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
 }
 
 .ts-items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .ts-items-table th {
-  border-top: 1px solid #000000;
-  border-bottom: 1px solid #000000;
-  padding: 1.5px 2px;
+  border-top: 1.4px solid #000000;
+  border-bottom: 1.4px solid #000000;
+  padding: 3.5px 3px;
   font-weight: 800;
   text-align: left;
-  font-size: 7.5px;
-  background: #f8fafc;
+  font-size: 9px;
+  background: #f1f5f9;
   color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
 }
 
 .ts-items-table th.num,
@@ -337,17 +363,22 @@
 }
 
 .ts-items-table td {
-  padding: 1.5px 2px;
-  border-bottom: 0.5px dashed #64748b;
-  line-height: 1.15;
-  vertical-align: top;
+  padding: 4px 3px;
+  border-bottom: 0.7px dashed #475569;
+  line-height: 1.22;
+  vertical-align: middle;
   color: #000000;
+  font-size: 9.8px;
+}
+
+.ts-items-table tbody tr:last-child td {
+  border-bottom: 1px solid #000000;
 }
 
 .ts-item-name {
   font-weight: 700;
-  font-size: 8px;
-  line-height: 1.15;
+  font-size: 10px;
+  line-height: 1.22;
   white-space: normal;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -355,111 +386,27 @@
 
 .ts-item-sub,
 .ts-item-variant-inline {
-  font-size: 6.8px;
+  font-size: 8.5px;
   color: #1e293b;
+  font-weight: 600;
   font-family: inherit;
-  line-height: 1.1;
+  line-height: 1.15;
   word-break: break-word;
   overflow-wrap: break-word;
 }
 
-/* --- DENSITY OPTIMIZATIONS FOR DIFFERENT ITEM COUNTS --- */
-/* Spacious mode (1-2 items) */
-.thermal-sticker-page.ts-density-spacious .ts-items-table td {
-  padding: 2.4px 2px;
-}
-.thermal-sticker-page.ts-density-spacious .ts-item-name {
-  font-size: 8.8px;
-}
-
-/* Medium mode (3-5 items) */
-.thermal-sticker-page.ts-density-medium .ts-items-table td {
-  padding: 1.4px 2px;
-}
-.thermal-sticker-page.ts-density-medium .ts-item-name {
-  font-size: 8px;
-}
-
-/* Compact mode (6-8 items) */
-.thermal-sticker-page.ts-density-compact .ts-items-table th {
-  padding: 1px 1.5px;
-  font-size: 7.2px;
-}
-.thermal-sticker-page.ts-density-compact .ts-items-table td {
-  padding: 1px 1.5px;
-  line-height: 1.1;
-}
-.thermal-sticker-page.ts-density-compact .ts-item-name {
-  font-size: 7.5px;
-  line-height: 1.12;
-}
-.thermal-sticker-page.ts-density-compact .ts-item-sub,
-.thermal-sticker-page.ts-density-compact .ts-item-variant-inline {
-  font-size: 6.3px;
-  line-height: 1.05;
-}
-.thermal-sticker-page.ts-density-compact .ts-customer-box {
-  padding: 0.8mm 1.5mm;
-  margin-bottom: 0.8mm;
-}
-.thermal-sticker-page.ts-density-compact .ts-header {
-  padding-bottom: 0.9mm;
-  margin-bottom: 0.8mm;
-}
-.thermal-sticker-page.ts-density-compact .ts-summary-wrap {
-  margin-bottom: 0.8mm;
-}
-.thermal-sticker-page.ts-density-compact .ts-footer {
-  padding-top: 0.8mm;
-}
-
-/* Ultra-Compact mode (9+ items) */
-.thermal-sticker-page.ts-density-ultra-compact .ts-items-table th {
-  padding: 0.8px 1px;
-  font-size: 6.8px;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-items-table td {
-  padding: 0.8px 1px;
-  line-height: 1.08;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-item-name {
-  font-size: 7px;
-  line-height: 1.08;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-item-sub,
-.thermal-sticker-page.ts-density-ultra-compact .ts-item-variant-inline {
-  font-size: 6px;
-  line-height: 1;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-customer-box {
-  padding: 0.6mm 1.2mm;
-  margin-bottom: 0.6mm;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-header {
-  padding-bottom: 0.6mm;
-  margin-bottom: 0.6mm;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-summary-wrap {
-  margin-bottom: 0.6mm;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-footer {
-  padding-top: 0.6mm;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-cod-banner {
-  padding: 1.5px 3px;
-}
-.thermal-sticker-page.ts-density-ultra-compact .ts-cod-amount {
-  font-size: 11px;
+.font-mono {
+  font-family: 'Courier New', Courier, monospace;
 }
 
 .ts-contd-notice {
   text-align: center;
-  font-size: 7.5px;
+  font-size: 8px;
   font-weight: 800;
-  padding: 1.5px;
+  padding: 2px;
   background: #f1f5f9;
-  border: 0.5px dashed #000000;
-  margin-top: 1.5px;
+  border: 0.6px dashed #000000;
+  margin-top: 2px;
 }
 
 /* --- ATOMIC BOTTOM CLUSTER (Summary + COD + Barcode + QR Code) --- */
@@ -476,7 +423,7 @@
 
 /* --- 4. PAYMENT & COD SUMMARY BANNER --- */
 .ts-summary-wrap {
-  margin-bottom: 1mm;
+  margin-bottom: 4px;
   flex-shrink: 0;
 }
 
@@ -484,61 +431,65 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 7.8px;
-  line-height: 1.2;
-  font-weight: 700;
-  padding: 0 1px;
+  font-size: 10px;
+  line-height: 1.25;
+  font-weight: 800;
+  padding: 3px 2px 3px 2px;
+  border-top: 1.2px solid #000000;
 }
 
 .ts-calc-left {
   display: flex;
-  gap: 6px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* Inverted high-contrast COD banner for courier rider */
 .ts-cod-banner {
   background: #000000;
   color: #ffffff;
-  padding: 2.2px 4px;
-  border-radius: 2px;
+  padding: 4.5px 7px;
+  border-radius: 3px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1.2px;
+  margin-top: 2px;
 }
 
 .ts-cod-banner.paid {
   background: #ffffff;
   color: #000000;
-  border: 1.2px solid #000000;
+  border: 1.5px solid #000000;
 }
 
 .ts-cod-label {
-  font-size: 8.5px;
+  font-size: 10.5px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .ts-cod-amount {
-  font-size: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: 0.4px;
 }
 
 /* --- 5. FOOTER & BARCODE SECTION --- */
 .ts-footer {
-  border-top: 1px solid #000000;
-  padding-top: 1mm;
+  border-top: 1.2px solid #000000;
+  padding-top: 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .ts-barcode-col {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -554,13 +505,21 @@
   justify-content: center;
 }
 
+.ts-qr-caption {
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-top: 1.5px;
+  color: #000000;
+}
+
 .ts-notice-text {
-  font-size: 6.2px;
-  font-weight: 600;
+  font-size: 8px;
+  font-weight: 700;
   text-align: center;
   color: #000000;
-  margin-top: 1px;
-  line-height: 1.1;
+  margin-top: 2px;
+  line-height: 1.15;
   width: 100%;
 }
 
@@ -568,29 +527,401 @@
   display: flex;
   justify-content: space-between;
   width: 100%;
-  font-size: 6px;
-  font-weight: 700;
-  margin-top: 1px;
-  color: #334155;
+  font-size: 7px;
+  font-weight: 800;
+  margin-top: 1.5px;
+  color: #1e293b;
   text-transform: uppercase;
 }
 
 /* ==============================================================================
+   INTELLIGENT DENSITY TIERS (Full-Area Vertical Utilization Across 1 to 12+ Items)
+   ============================================================================== */
+
+/* --- TIER 1: SPACIOUS MODE (1–2 items) — Bold, generously spaced 4×4 label --- */
+.thermal-sticker-page.ts-density-spacious {
+  padding: 2.5mm 3.2mm 2.2mm 3.2mm;
+}
+.thermal-sticker-page.ts-density-spacious .ts-header {
+  padding-bottom: 5.5px;
+  margin-bottom: 7px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-logo-img {
+  width: 34px;
+  height: 34px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-store-name {
+  font-size: 17px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-label-type {
+  font-size: 8.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-order-pill {
+  font-size: 9px;
+  padding: 2.5px 6px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-order-id-large {
+  font-size: 16.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-customer-box {
+  padding: 5.5px 8px;
+  margin-bottom: 6px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-box-tag {
+  font-size: 8.5px;
+  padding-bottom: 2px;
+  margin-bottom: 3.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-cust-name {
+  font-size: 14.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-cust-phone {
+  font-size: 14px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-cust-address {
+  font-size: 11px;
+  line-height: 1.32;
+  margin-top: 3px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-cust-meta-row {
+  font-size: 9px;
+  margin-top: 3.5px;
+  padding-top: 2.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-items-table th {
+  padding: 4.5px 4px;
+  font-size: 9.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-items-table td {
+  padding: 6px 4px;
+  font-size: 11px;
+  line-height: 1.28;
+}
+.thermal-sticker-page.ts-density-spacious .ts-item-name {
+  font-size: 11px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-item-variant-inline {
+  font-size: 9.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-summary-wrap {
+  margin-bottom: 5.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-calc-rows {
+  font-size: 11px;
+  padding: 4px 2px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-cod-banner {
+  padding: 6px 8px;
+  margin-top: 3px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-cod-label {
+  font-size: 11.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-cod-amount {
+  font-size: 18px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-footer {
+  padding-top: 5.5px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-notice-text {
+  font-size: 8.5px;
+  margin-top: 3px;
+}
+.thermal-sticker-page.ts-density-spacious .ts-meta-sub {
+  font-size: 7.5px;
+  margin-top: 2px;
+}
+
+/* --- TIER 2: MEDIUM MODE (3–5 items) — Uses balanced base styles above --- */
+
+/* --- TIER 3: COMPACT MODE (6–8 items) — Crisp & full-height for multi-item orders --- */
+.thermal-sticker-page.ts-density-compact .ts-header {
+  padding-bottom: 3px;
+  margin-bottom: 4px;
+}
+.thermal-sticker-page.ts-density-compact .ts-logo-img {
+  width: 26px;
+  height: 26px;
+}
+.thermal-sticker-page.ts-density-compact .ts-store-name {
+  font-size: 14px;
+}
+.thermal-sticker-page.ts-density-compact .ts-label-type {
+  font-size: 7.5px;
+}
+.thermal-sticker-page.ts-density-compact .ts-order-pill {
+  font-size: 8px;
+  padding: 1.5px 5px;
+}
+.thermal-sticker-page.ts-density-compact .ts-order-id-large {
+  font-size: 13.5px;
+}
+.thermal-sticker-page.ts-density-compact .ts-customer-box {
+  padding: 3.5px 6px;
+  margin-bottom: 4px;
+}
+.thermal-sticker-page.ts-density-compact .ts-box-tag {
+  font-size: 7.5px;
+  padding-bottom: 1.5px;
+  margin-bottom: 2px;
+}
+.thermal-sticker-page.ts-density-compact .ts-cust-name {
+  font-size: 12px;
+}
+.thermal-sticker-page.ts-density-compact .ts-cust-phone {
+  font-size: 12px;
+}
+.thermal-sticker-page.ts-density-compact .ts-cust-address {
+  font-size: 9.5px;
+  line-height: 1.22;
+  margin-top: 1.5px;
+}
+.thermal-sticker-page.ts-density-compact .ts-cust-meta-row {
+  font-size: 8px;
+  margin-top: 2px;
+  padding-top: 1.5px;
+}
+.thermal-sticker-page.ts-density-compact .ts-items-table th {
+  padding: 2.5px 2.5px;
+  font-size: 8.5px;
+}
+.thermal-sticker-page.ts-density-compact .ts-items-table td {
+  padding: 2.6px 2.5px;
+  font-size: 9px;
+  line-height: 1.18;
+}
+.thermal-sticker-page.ts-density-compact .ts-item-name {
+  font-size: 9px;
+  line-height: 1.18;
+}
+.thermal-sticker-page.ts-density-compact .ts-item-sub,
+.thermal-sticker-page.ts-density-compact .ts-item-variant-inline {
+  font-size: 7.8px;
+  line-height: 1.1;
+}
+.thermal-sticker-page.ts-density-compact .ts-summary-wrap {
+  margin-bottom: 3px;
+}
+.thermal-sticker-page.ts-density-compact .ts-calc-rows {
+  font-size: 9.2px;
+  padding: 2.5px 2px;
+}
+.thermal-sticker-page.ts-density-compact .ts-cod-banner {
+  padding: 3.8px 6px;
+}
+.thermal-sticker-page.ts-density-compact .ts-cod-label {
+  font-size: 9.8px;
+}
+.thermal-sticker-page.ts-density-compact .ts-cod-amount {
+  font-size: 14.5px;
+}
+.thermal-sticker-page.ts-density-compact .ts-footer {
+  padding-top: 3px;
+}
+.thermal-sticker-page.ts-density-compact .ts-notice-text {
+  font-size: 7.4px;
+}
+.thermal-sticker-page.ts-density-compact .ts-meta-sub {
+  font-size: 6.6px;
+}
+
+/* --- TIER 4: ULTRA-COMPACT MODE (9+ items) — Fits 10-12+ products cleanly on 1 sticker --- */
+.thermal-sticker-page.ts-density-ultra-compact {
+  padding: 1.6mm 2.2mm 1.5mm 2.2mm;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-header {
+  padding-bottom: 2px;
+  margin-bottom: 2.5px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-logo-img {
+  width: 22px;
+  height: 22px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-store-name {
+  font-size: 12.5px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-label-type {
+  font-size: 6.8px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-order-pill {
+  font-size: 7px;
+  padding: 1px 4px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-order-id-large {
+  font-size: 12px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-customer-box {
+  padding: 2.5px 5px;
+  margin-bottom: 2.5px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-box-tag {
+  font-size: 6.8px;
+  padding-bottom: 1px;
+  margin-bottom: 1.5px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-cust-name {
+  font-size: 10.5px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-cust-phone {
+  font-size: 10.5px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-cust-address {
+  font-size: 8.4px;
+  line-height: 1.15;
+  margin-top: 1px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-cust-meta-row {
+  font-size: 7.2px;
+  margin-top: 1.5px;
+  padding-top: 1px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-items-table th {
+  padding: 1.5px 2px;
+  font-size: 7.6px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-items-table td {
+  padding: 1.5px 2px;
+  font-size: 8px;
+  line-height: 1.1;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-item-name {
+  font-size: 8px;
+  line-height: 1.1;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-item-sub,
+.thermal-sticker-page.ts-density-ultra-compact .ts-item-variant-inline {
+  font-size: 7px;
+  line-height: 1.05;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-summary-wrap {
+  margin-bottom: 2px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-calc-rows {
+  font-size: 8.2px;
+  padding: 1.5px 1px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-cod-banner {
+  padding: 2.5px 5px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-cod-label {
+  font-size: 8.8px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-cod-amount {
+  font-size: 13px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-footer {
+  padding-top: 2px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-notice-text {
+  font-size: 6.6px;
+}
+.thermal-sticker-page.ts-density-ultra-compact .ts-meta-sub {
+  font-size: 6px;
+}
+
+/* ==============================================================================
+   PAPER-SIZE SPECIFIC OVERRIDES (4"×6", 80mm, 58mm, 75×100mm)
+   ============================================================================== */
+
+/* 4" × 6" Tall Courier Label — Even larger breathing room */
+.thermal-sticker-page.size-100x150 .ts-header {
+  padding-bottom: 7px;
+  margin-bottom: 8px;
+}
+.thermal-sticker-page.size-100x150 .ts-logo-img {
+  width: 38px;
+  height: 38px;
+}
+.thermal-sticker-page.size-100x150 .ts-store-name {
+  font-size: 18px;
+}
+.thermal-sticker-page.size-100x150 .ts-order-id-large {
+  font-size: 18px;
+}
+.thermal-sticker-page.size-100x150 .ts-customer-box {
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.thermal-sticker-page.size-100x150 .ts-cust-name,
+.thermal-sticker-page.size-100x150 .ts-cust-phone {
+  font-size: 15.5px;
+}
+.thermal-sticker-page.size-100x150 .ts-cust-address {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.thermal-sticker-page.size-100x150 .ts-items-table td {
+  padding: 6px 4px;
+  font-size: 11px;
+}
+.thermal-sticker-page.size-100x150 .ts-item-name {
+  font-size: 11px;
+}
+.thermal-sticker-page.size-100x150 .ts-cod-banner {
+  padding: 7px 10px;
+}
+.thermal-sticker-page.size-100x150 .ts-cod-amount {
+  font-size: 20px;
+}
+
+/* 80mm POS Narrow Width */
+.thermal-sticker-page.size-80mm .ts-store-name { font-size: 12.5px; }
+.thermal-sticker-page.size-80mm .ts-order-id-large { font-size: 12px; }
+.thermal-sticker-page.size-80mm .ts-logo-img { width: 24px; height: 24px; }
+.thermal-sticker-page.size-80mm .ts-cust-name,
+.thermal-sticker-page.size-80mm .ts-cust-phone { font-size: 11px; }
+.thermal-sticker-page.size-80mm .ts-cust-address { font-size: 9px; }
+.thermal-sticker-page.size-80mm .ts-items-table th,
+.thermal-sticker-page.size-80mm .ts-items-table td,
+.thermal-sticker-page.size-80mm .ts-item-name { font-size: 8.5px; padding: 2.5px 1.5px; }
+.thermal-sticker-page.size-80mm .ts-cod-label { font-size: 9px; }
+.thermal-sticker-page.size-80mm .ts-cod-amount { font-size: 13px; }
+
+/* 58mm Mini POS Narrow Width */
+.thermal-sticker-page.size-58mm .ts-logo-img { width: 18px; height: 18px; }
+.thermal-sticker-page.size-58mm .ts-store-name { font-size: 10.5px; }
+.thermal-sticker-page.size-58mm .ts-label-type { font-size: 6px; }
+.thermal-sticker-page.size-58mm .ts-order-pill { font-size: 6.5px; padding: 1px 3px; }
+.thermal-sticker-page.size-58mm .ts-order-id-large { font-size: 10px; }
+.thermal-sticker-page.size-58mm .ts-cust-name { font-size: 9.5px; min-width: 70px; }
+.thermal-sticker-page.size-58mm .ts-cust-phone { font-size: 9.5px; }
+.thermal-sticker-page.size-58mm .ts-cust-address { font-size: 8px; }
+.thermal-sticker-page.size-58mm .ts-cust-meta-row { font-size: 7px; }
+.thermal-sticker-page.size-58mm .ts-items-table th,
+.thermal-sticker-page.size-58mm .ts-items-table td,
+.thermal-sticker-page.size-58mm .ts-item-name { font-size: 7.5px; padding: 1.5px 1px; }
+.thermal-sticker-page.size-58mm .ts-calc-rows { font-size: 7.5px; }
+.thermal-sticker-page.size-58mm .ts-cod-label { font-size: 7.5px; }
+.thermal-sticker-page.size-58mm .ts-cod-amount { font-size: 11px; }
+.thermal-sticker-page.size-58mm .ts-notice-text { font-size: 6.2px; }
+.thermal-sticker-page.size-58mm .ts-meta-sub { font-size: 5.8px; }
+
+/* 75mm × 100mm Compact Width */
+.thermal-sticker-page.size-75x100 .ts-logo-img { width: 24px; height: 24px; }
+.thermal-sticker-page.size-75x100 .ts-store-name { font-size: 12.5px; }
+.thermal-sticker-page.size-75x100 .ts-order-id-large { font-size: 12px; }
+.thermal-sticker-page.size-75x100 .ts-cust-name,
+.thermal-sticker-page.size-75x100 .ts-cust-phone { font-size: 10.8px; }
+.thermal-sticker-page.size-75x100 .ts-cust-address { font-size: 8.8px; }
+.thermal-sticker-page.size-75x100 .ts-items-table th,
+.thermal-sticker-page.size-75x100 .ts-items-table td,
+.thermal-sticker-page.size-75x100 .ts-item-name { font-size: 8.5px; padding: 2.2px 1.5px; }
+.thermal-sticker-page.size-75x100 .ts-cod-label { font-size: 9px; }
+.thermal-sticker-page.size-75x100 .ts-cod-amount { font-size: 13.5px; }
+
+/* ==============================================================================
    NATIVE PRINT MEDIA STYLES (@media print)
-   Supports:
-   - 4" × 4" (100mm × 100mm) Paper Roll [Primary / Default]
-   - 150mm × 100mm Courier Portrait (4" × 6")
-   - 150mm × 100mm Landscape
-   - 75mm × 100mm Compact Roll
-   Zero Top-Margin Gap · Strict 100mm × 100mm Edge-to-Edge Print Alignment
+   Full-Area 4" × 4" (4in × 4in / 101.6mm × 101.6mm) Zero-Margin Print Alignment
    ============================================================================== */
 
 @media print {
   @page {
-    margin: 0mm !important;
+    size: 4in 4in;
+    margin: 0 !important;
   }
 
-  /* 1. Complete suppression of all screen app elements from layout */
+  /* 1. Hide EVERYTHING in document.body except the dedicated thermal print container */
+  body > *:not(#thermal-print-root),
   #root,
   .adm-backdrop,
   .adm-modal-sheet,
@@ -608,28 +939,31 @@
     overflow: hidden !important;
   }
 
-  /* 2. Global html & body reset to zero margins */
+  /* 2. Global html & body reset to absolute zero margins/padding/offsets */
   html,
   body {
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     background: #ffffff !important;
+    background-image: none !important;
     color: #000000 !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
+    line-height: 1.2 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* 3. Off-screen Portal Print Container (direct child of body)
-        STATIC flow starts directly at top edge 0,0 - eliminating Chrome absolute top-gap bug! */
+  /* 3. Off-screen Portal Print Container (direct child of body) */
   #thermal-print-root {
     display: block !important;
     visibility: visible !important;
     position: static !important;
+    top: 0 !important;
+    left: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     box-sizing: border-box !important;
@@ -637,14 +971,13 @@
     height: auto !important;
   }
 
-  /* Fallback if legacy mount exists */
   #thermal-print-mount {
     display: none !important;
   }
 
-  /* 4. Base thermal sticker page container
-        Uses flex-start so content flows naturally from top with NO flex gaps pushed to extra pages */
-  .thermal-sticker-page {
+  /* 4. Base thermal sticker / shipping label container */
+  .thermal-sticker-page,
+  .shipping-label {
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
@@ -663,16 +996,15 @@
     print-color-adjust: exact !important;
   }
 
-  /* --- 4A. Default 4" × 4" (100mm × 100mm) Paper Roll --- */
+  /* --- 4A. Default 4" × 4" (4in × 4in / 101.6mm × 101.6mm) Sticker Roll --- */
   .thermal-sticker-page,
   .thermal-sticker-page.size-100x100 {
-    width: 100mm !important;
-    height: 100mm !important;
-    min-width: 100mm !important;
-    max-width: 100mm !important;
-    min-height: 100mm !important;
-    max-height: 100mm !important;
-    padding: 1.5mm 2.5mm 1.2mm 2.5mm !important;
+    width: 4in !important;
+    height: 4in !important;
+    min-width: 4in !important;
+    max-width: 4in !important;
+    min-height: 4in !important;
+    max-height: 4in !important;
     overflow: hidden !important;
   }
 
@@ -684,19 +1016,17 @@
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-    padding: 1.5mm 2.5mm 1.5mm 2.5mm !important;
     overflow: visible !important;
   }
 
-  /* --- 4C. 100mm × 150mm Courier Portrait (4" × 6") --- */
+  /* --- 4C. 4" × 6" Courier Portrait (4in × 6in) --- */
   .thermal-sticker-page.size-100x150 {
-    width: 100mm !important;
-    height: 150mm !important;
-    min-width: 100mm !important;
-    max-width: 100mm !important;
-    min-height: 150mm !important;
-    max-height: 150mm !important;
-    padding: 3mm 3.5mm 2.5mm 3.5mm !important;
+    width: 4in !important;
+    height: 6in !important;
+    min-width: 4in !important;
+    max-width: 4in !important;
+    min-height: 6in !important;
+    max-height: 6in !important;
     overflow: hidden !important;
   }
 
@@ -708,7 +1038,6 @@
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-    padding: 1.5mm 2mm 1.2mm 2mm !important;
     overflow: visible !important;
   }
 
@@ -720,7 +1049,6 @@
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-    padding: 1mm 1.5mm 1mm 1.5mm !important;
     overflow: visible !important;
   }
 
@@ -732,11 +1060,10 @@
     max-width: 75mm !important;
     min-height: 100mm !important;
     max-height: 100mm !important;
-    padding: 1.8mm 2.2mm 1.5mm 2.2mm !important;
     overflow: hidden !important;
   }
 
-  /* Atomic Bottom Cluster in Print: Guaranteed never to break away from invoice */
+  /* Atomic Bottom Cluster in Print: Anchored cleanly at bottom of 4"×4" sticker */
   .ts-bottom-cluster {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -745,7 +1072,7 @@
     margin-top: auto !important;
   }
 
-  /* 5. Suppress page break on the very last sticker to eliminate trailing blank page */
+  /* 5. Suppress trailing blank page after the last sticker */
   .thermal-sticker-page:last-child {
     page-break-after: auto !important;
     break-after: auto !important;

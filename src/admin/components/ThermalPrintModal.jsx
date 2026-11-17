@@ -21,6 +21,7 @@ import ThermalSticker, {
 } from './ThermalSticker';
 import { isOrderPrinted, markOrdersAsPrinted } from '../lib/thermalPrintStorage';
 import './thermalPrint.css';
+import thermalPrintCss from './thermalPrint.css?inline';
 
 /**
  * Enterprise Direct Thermal Order Sticker Print Modal
@@ -68,6 +69,9 @@ export default function ThermalPrintModal({
     } catch (e) {}
 
     const sizeCfg = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
+    const cssW = sizeCfg.cssWidth || `${sizeCfg.widthMm}mm`;
+    const cssH = sizeCfg.isContinuous ? 'auto' : (sizeCfg.cssHeight || `${sizeCfg.heightMm}mm`);
+
     let styleEl = document.getElementById('thermal-dynamic-page-style');
     if (!styleEl) {
       styleEl = document.createElement('style');
@@ -78,23 +82,24 @@ export default function ThermalPrintModal({
     if (sizeCfg.isContinuous) {
       styleEl.innerHTML = `
         @page {
-          size: ${sizeCfg.widthMm}mm auto;
-          margin: 0mm !important;
+          size: ${cssW} auto;
+          margin: 0 !important;
         }
         @media print {
           html, body {
-            width: ${sizeCfg.widthMm}mm !important;
+            width: ${cssW} !important;
             height: auto !important;
             min-height: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
           }
           #thermal-print-root {
-            width: ${sizeCfg.widthMm}mm !important;
+            width: ${cssW} !important;
             position: static !important;
           }
-          .thermal-sticker-page {
-            width: ${sizeCfg.widthMm}mm !important;
+          .thermal-sticker-page,
+          .shipping-label {
+            width: ${cssW} !important;
             height: auto !important;
             min-height: 0 !important;
           }
@@ -103,24 +108,28 @@ export default function ThermalPrintModal({
     } else {
       styleEl.innerHTML = `
         @page {
-          size: ${sizeCfg.widthMm}mm ${sizeCfg.heightMm}mm;
-          margin: 0mm !important;
+          size: ${cssW} ${cssH};
+          margin: 0 !important;
         }
         @media print {
           html, body {
-            width: ${sizeCfg.widthMm}mm !important;
-            height: ${sizeCfg.heightMm}mm !important;
+            width: ${cssW} !important;
+            height: auto !important;
+            min-height: ${cssH} !important;
             margin: 0 !important;
             padding: 0 !important;
           }
           #thermal-print-root {
-            width: ${sizeCfg.widthMm}mm !important;
+            width: ${cssW} !important;
             position: static !important;
           }
-          .thermal-sticker-page {
-            width: ${sizeCfg.widthMm}mm !important;
-            height: ${sizeCfg.heightMm}mm !important;
-            max-height: ${sizeCfg.heightMm}mm !important;
+          .thermal-sticker-page,
+          .shipping-label {
+            width: ${cssW} !important;
+            height: ${cssH} !important;
+            min-height: ${cssH} !important;
+            max-height: ${cssH} !important;
+            overflow: hidden !important;
           }
         }
       `;
@@ -172,7 +181,7 @@ export default function ThermalPrintModal({
 
   const activeSizeConfig = THERMAL_PAPER_SIZES[paperSize] || THERMAL_PAPER_SIZES[DEFAULT_PAPER_SIZE];
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (isPrinting) return;
     setIsPrinting(true);
 
@@ -185,138 +194,222 @@ export default function ThermalPrintModal({
     }
 
     const sizeCfg = activeSizeConfig;
+    const cssW = sizeCfg.cssWidth || `${sizeCfg.widthMm}mm`;
+    const cssH = sizeCfg.isContinuous ? 'auto' : (sizeCfg.cssHeight || `${sizeCfg.heightMm}mm`);
     const printRoot = document.getElementById('thermal-print-root');
-    let styleEl = document.getElementById('thermal-dynamic-page-style');
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'thermal-dynamic-page-style';
-      document.head.appendChild(styleEl);
+
+    if (!printRoot) {
+      window.print();
+      setTimeout(() => setIsPrinting(false), 1000);
+      return;
     }
 
-    if (printRoot) {
-      const stickerEls = printRoot.querySelectorAll('.thermal-sticker-page');
-      let maxStickerHeightPx = 0;
-      stickerEls.forEach((el) => {
-        // Reset previous inline styles before measurement
-        el.style.transform = '';
-        el.style.transformOrigin = '';
-        const rect = el.getBoundingClientRect();
-        const h = Math.max(rect.height, el.scrollHeight);
-        if (h > maxStickerHeightPx) maxStickerHeightPx = h;
-      });
+    // Remove any leftover print iframe from an interrupted print attempt
+    const oldIframe = document.getElementById('thermal-isolated-print-frame');
+    if (oldIframe) oldIframe.remove();
 
-      // Convert px to mm (at 96 DPI: 1px = 25.4 / 96 = ~0.264583mm)
-      const measuredMm = Math.ceil((maxStickerHeightPx * 25.4) / 96);
+    try {
+      // Create an isolated off-screen iframe with exact 1:1 physical width so measurement
+      // happens against real rendered geometry (zero SPA CSS/scroll/body leakage!)
+      const iframe = document.createElement('iframe');
+      iframe.id = 'thermal-isolated-print-frame';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: -10000px;
+        width: ${cssW};
+        height: ${sizeCfg.isContinuous ? '1200px' : cssH};
+        border: 0;
+        margin: 0;
+        padding: 0;
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+      `;
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      const iframeWin = iframe.contentWindow;
+      if (!iframeDoc || !iframeWin) {
+        iframe.remove();
+        window.print();
+        setTimeout(() => setIsPrinting(false), 1000);
+        return;
+      }
+
+      // Copy font stylesheet links from parent document so Bengali fonts match 100%
+      const fontLinksHtml = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .filter((link) => link.href && (link.href.includes('fonts.googleapis.com') || link.href.includes('font')))
+        .map((link) => `<link rel="stylesheet" href="${link.href}">`)
+        .join('\n');
+
+      const baseOrigin = window.location.origin;
+      const stickerMarkup = printRoot.innerHTML;
+
+      const initialPageRule = sizeCfg.isContinuous
+        ? `@page { size: ${cssW} auto; margin: 0 !important; }`
+        : `@page { size: ${cssW} ${cssH}; margin: 0 !important; }`;
+
+      const iframeHtml = `<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <base href="${baseOrigin}/" />
+  <title>Thermal Label Print - ${orderId}</title>
+  ${fontLinksHtml}
+  <style>
+    ${thermalPrintCss}
+  </style>
+  <style id="thermal-iframe-page-rules">
+    ${initialPageRule}
+    html, body {
+      width: ${cssW} !important;
+      height: auto !important;
+      min-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      overflow: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #thermal-print-root {
+      display: block !important;
+      visibility: visible !important;
+      position: static !important;
+      width: ${cssW} !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    .thermal-sticker-page,
+    .shipping-label {
+      width: ${cssW} !important;
+      ${sizeCfg.isContinuous
+        ? 'height: auto !important; min-height: 0 !important; max-height: none !important; overflow: visible !important;'
+        : `height: ${cssH} !important; min-height: ${cssH} !important; max-height: ${cssH} !important; overflow: hidden !important;`
+      }
+      margin: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-after: always !important;
+      break-after: page !important;
+    }
+    .thermal-sticker-page:last-child,
+    .shipping-label:last-child {
+      page-break-after: auto !important;
+      break-after: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="thermal-print-root">${stickerMarkup}</div>
+</body>
+</html>`;
+
+      iframeDoc.open();
+      iframeDoc.write(iframeHtml);
+      iframeDoc.close();
+
+      // Wait for all images (logo + QR data URLs) and web fonts inside iframe to finish loading
+      const imgs = Array.from(iframeDoc.querySelectorAll('img'));
+      await Promise.all([
+        ...imgs.map((img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise((resolve) => {
+                img.onload = resolve;
+                img.onerror = resolve;
+                setTimeout(resolve, 1500);
+              })
+        ),
+        iframeDoc.fonts ? iframeDoc.fonts.ready.catch(() => {}) : Promise.resolve()
+      ]);
+
+      // Small layout settle frame
+      await new Promise((resolve) => setTimeout(resolve, 60));
+
+      const stickerEls = Array.from(iframeDoc.querySelectorAll('.thermal-sticker-page'));
 
       if (sizeCfg.isContinuous) {
-        // Continuous roll printing: match page height exactly to content with safety buffer
-        const continuousHeightMm = Math.max(65, measuredMm + 2);
-        styleEl.innerHTML = `
-          @page {
-            size: ${sizeCfg.widthMm}mm ${continuousHeightMm}mm;
-            margin: 0mm !important;
-          }
-          @media print {
-            html, body {
-              width: ${sizeCfg.widthMm}mm !important;
-              height: auto !important;
-              min-height: 0 !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            #thermal-print-root {
-              width: ${sizeCfg.widthMm}mm !important;
-            }
-            .thermal-sticker-page {
-              width: ${sizeCfg.widthMm}mm !important;
-              height: auto !important;
-              min-height: 0 !important;
-            }
-          }
-        `;
-      } else if (sizeCfg.id === '100x100') {
-        // Strict 100x100mm (4" x 4") die-cut label guarantee
-        // If content height exceeds 98mm, auto-scale down so it fits 100% inside 96mm
-        if (measuredMm > 98) {
-          const scaleRatio = Math.max(0.68, Number((96 / measuredMm).toFixed(3)));
-          stickerEls.forEach((el) => {
-            el.style.transform = `scale(${scaleRatio})`;
-            el.style.transformOrigin = 'top center';
-          });
+        // Measure TRUE rendered height for continuous roll so printer cuts cleanly right after footer
+        let maxHeightPx = 0;
+        stickerEls.forEach((el) => {
+          const h = Math.max(el.getBoundingClientRect().height, el.scrollHeight);
+          if (h > maxHeightPx) maxHeightPx = h;
+        });
+        const measuredMm = Math.max(65, Math.ceil((maxHeightPx * 25.4) / 96) + 2);
+        const pageStyle = iframeDoc.getElementById('thermal-iframe-page-rules');
+        if (pageStyle) {
+          pageStyle.innerHTML = pageStyle.innerHTML.replace(
+            /@page\s*\{[^}]*\}/,
+            `@page { size: ${sizeCfg.widthMm}mm ${measuredMm}mm; margin: 0 !important; }`
+          );
         }
-        styleEl.innerHTML = `
-          @page {
-            size: 100mm 100mm;
-            margin: 0mm !important;
-          }
-          @media print {
-            html, body {
-              width: 100mm !important;
-              height: 100mm !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            #thermal-print-root {
-              width: 100mm !important;
-            }
-            .thermal-sticker-page {
-              width: 100mm !important;
-              height: 100mm !important;
-              max-height: 100mm !important;
-              overflow: hidden !important;
-            }
-          }
-        `;
       } else {
-        // Fixed dimensions (100x150, 75x100)
-        const targetH = sizeCfg.heightMm;
-        if (measuredMm > targetH - 2) {
-          const scaleRatio = Math.max(0.68, Number(((targetH - 4) / measuredMm).toFixed(3)));
-          stickerEls.forEach((el) => {
-            el.style.transform = `scale(${scaleRatio})`;
-            el.style.transformOrigin = 'top center';
-          });
-        }
-        styleEl.innerHTML = `
-          @page {
-            size: ${sizeCfg.widthMm}mm ${targetH}mm;
-            margin: 0mm !important;
-          }
-          @media print {
-            html, body {
-              width: ${sizeCfg.widthMm}mm !important;
-              height: ${targetH}mm !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            #thermal-print-root {
-              width: ${sizeCfg.widthMm}mm !important;
-            }
-            .thermal-sticker-page {
-              width: ${sizeCfg.widthMm}mm !important;
-              height: ${targetH}mm !important;
-              max-height: ${targetH}mm !important;
-              overflow: hidden !important;
-            }
-          }
-        `;
-      }
-    }
+        // Fixed-size die-cut sticker (4"x4", 4"x6", 75x100mm):
+        // Check each sticker for genuine internal overflow (e.g. long addresses or 12+ items)
+        // and step down ONE density tier at a time so layout stays maximally balanced & full-area!
+        const densityTiers = [
+          'ts-density-spacious',
+          'ts-density-medium',
+          'ts-density-compact',
+          'ts-density-ultra-compact'
+        ];
+        stickerEls.forEach((el) => {
+          const itemsSection = el.querySelector('.ts-items-section');
+          const itemsTable = el.querySelector('.ts-items-table');
+          if (itemsSection && itemsTable) {
+            let tierIdx = densityTiers.findIndex((cls) => el.classList.contains(cls));
+            if (tierIdx === -1) tierIdx = 1;
 
-    // Trigger native browser print dialog safely
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
+            // Step 1: Step down gently one density tier at a time until content fits cleanly
+            while (
+              itemsTable.scrollHeight > itemsSection.clientHeight + 1 &&
+              itemsSection.clientHeight > 0 &&
+              tierIdx < densityTiers.length - 1
+            ) {
+              el.classList.remove(densityTiers[tierIdx]);
+              tierIdx += 1;
+              el.classList.add(densityTiers[tierIdx]);
+            }
+
+            // Step 2: Only for extreme orders (14+ multi-line items) apply proportional table fit
+            if (itemsTable.scrollHeight > itemsSection.clientHeight + 1 && itemsSection.clientHeight > 0) {
+              const ratio = Math.max(0.68, Number((itemsSection.clientHeight / itemsTable.scrollHeight).toFixed(3)));
+              itemsTable.style.zoom = String(ratio);
+            }
+          }
+        });
+      }
+
+      // Clean up after print dialog closes
+      let cleanedUp = false;
+      const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
         setIsPrinting(false);
-        if (printRoot) {
-          const stickerEls = printRoot.querySelectorAll('.thermal-sticker-page');
-          stickerEls.forEach((el) => {
-            el.style.transform = '';
-            el.style.transformOrigin = '';
-          });
-        }
-      }, 1200);
-    }, 120);
+        setTimeout(() => {
+          const frame = document.getElementById('thermal-isolated-print-frame');
+          if (frame) frame.remove();
+        }, 500);
+      };
+
+      iframeWin.onafterprint = cleanup;
+      iframeWin.focus();
+      iframeWin.print();
+
+      // Safety fallback in case browser doesn't fire onafterprint on iframe
+      setTimeout(cleanup, 3000);
+    } catch (err) {
+      console.error('[ThermalPrintModal] Isolated iframe print failed, falling back:', err);
+      window.print();
+      setTimeout(() => setIsPrinting(false), 1200);
+    }
   };
 
   return (
@@ -646,19 +739,22 @@ export default function ThermalPrintModal({
               </div>
               <ul style={{ margin: 0, paddingLeft: '20px', display: 'grid', gap: '4px' }}>
                 <li>
-                  <b>Paper Size:</b> Select <code>4" × 4"</code> (or <code>100mm × 100mm</code> / <code>101.6mm × 101.6mm</code>).
+                  <b>Paper Size (Browser &amp; Windows Driver):</b> Must match <code>4" × 4"</code> (<code>101.6mm × 101.6mm</code>). If Windows Printer Preferences is set to <code>4" × 6"</code>, it will leave a blank gap on 4"×4" stickers.
                 </li>
                 <li>
-                  <b>Margins:</b> Set to <b>None</b> (or <code>0 mm</code>) in the browser print dialog.
+                  <b>Margins:</b> Set to <b>None</b> (<code>0 mm</code>) in the browser print dialog.
                 </li>
                 <li>
-                  <b>Scale:</b> Set to <b>100% / Actual Size</b> (do <i>not</i> use "Fit to printable area").
+                  <b>Scale:</b> Set to <b>Default / 100%</b> (do <i>not</i> use "Fit to printable area").
                 </li>
                 <li>
-                  <b>Headers and Footers:</b> <b>Uncheck</b> / Turn off (removes browser URL, date and page numbers).
+                  <b>Headers and Footers:</b> <b>Uncheck</b> / Turn off.
                 </li>
                 <li>
-                  <b>Copies in Windows Print Dialog:</b> Leave at <b>1</b> (copies are managed accurately by the website).
+                  <b>Copies in Windows Print Dialog:</b> Leave at <b>1</b> (exact copies are generated by the website).
+                </li>
+                <li>
+                  <b>Hardware Gap Calibration (if top starts low despite clean preview):</b> Hold the printer's physical <b>FEED</b> button for 3–5 seconds until it auto-feeds 2–3 labels to re-learn the 4"×4" gap sensor.
                 </li>
               </ul>
             </div>

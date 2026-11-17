@@ -21,8 +21,9 @@ import {
   Undo2
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
+import EShipFirstSettingsCard from '../components/EShipFirstSettingsCard';
 
-export default function EasyCourierSetup() {
+export default function EasyCourierSetup({ onOpenCourierDashboard }) {
   const { siteSettings, updateSiteSettings, showToast } = useCms();
   const [saving, setSaving] = useState(false);
 
@@ -330,6 +331,14 @@ export default function EasyCourierSetup() {
       </div>
 
       <div className="easy-form-stack">
+        {/* ================================================================= */}
+        {/* SECTION: Settings → Courier Settings → eShipFirst API Integration */}
+        {/* ================================================================= */}
+        <EShipFirstSettingsCard
+          showToast={showToast}
+          onOpenCourierDashboard={onOpenCourierDashboard}
+        />
+
         {/* ================================================================= */}
         {/* SECTION: Fraud Protection → Duplicate Order Protection             */}
         {/* ================================================================= */}

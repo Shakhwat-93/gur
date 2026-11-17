@@ -38,10 +38,11 @@ export default function AdminLayout({ activeTab, setActiveTab, onNavigateStore, 
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutGrid },
-    { id: 'pixel', label: 'Pixel Setup', icon: Target },
-    { id: 'courier', label: 'Fraud & Courier', icon: ShieldCheck },
+    { id: 'orders', label: 'Orders', icon: ClipboardList, badge: pendingCount > 0 ? pendingCount : null },
+    { id: 'courier_management', label: 'Courier Management', icon: Truck },
+    { id: 'courier', label: 'Courier Settings', icon: ShieldCheck },
     { id: 'stock', label: 'Stock', icon: Package },
-    { id: 'orders', label: 'Orders', icon: ClipboardList, badge: pendingCount > 0 ? pendingCount : null }
+    { id: 'pixel', label: 'Pixel Setup', icon: Target }
   ];
 
   const handleRefresh = async () => {

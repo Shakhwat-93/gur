@@ -7,13 +7,15 @@ import './thermalPrint.css';
 export const THERMAL_PAPER_SIZES = {
   '100x100': {
     id: '100x100',
-    name: '4" × 4" (100mm × 100mm)',
-    label: '4" × 4" Roll (100×100mm)',
+    name: '4" × 4" (101.6mm × 101.6mm)',
+    label: '4" × 4" Sticker (101.6×101.6mm)',
     shortName: '4" × 4"',
-    widthMm: 100,
-    heightMm: 100,
+    widthMm: 101.6,
+    heightMm: 101.6,
+    cssWidth: '4in',
+    cssHeight: '4in',
     isContinuous: false,
-    description: '4 ইঞ্চি বাই 4 ইঞ্চি (100mm × 100mm) স্টিকার রোল'
+    description: '4 ইঞ্চি বাই 4 ইঞ্চি (101.6mm × 101.6mm) ফুল-এরিয়া স্টিকার রোল'
   },
   'continuous': {
     id: 'continuous',
@@ -22,18 +24,22 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '100mm Auto',
     widthMm: 100,
     heightMm: 'auto',
+    cssWidth: '100mm',
+    cssHeight: 'auto',
     isContinuous: true,
     description: '100mm রসিদ রোল (যত আইটেমই থাকুক ১ পেজে একটানা প্রিন্ট)'
   },
   '100x150': {
     id: '100x150',
-    name: '100mm × 150mm / 4" × 6" (Courier Portrait)',
-    label: '100mm × 150mm (4" × 6")',
+    name: '4" × 6" (101.6mm × 152.4mm Courier)',
+    label: '4" × 6" (100×150mm)',
     shortName: '4" × 6"',
-    widthMm: 100,
-    heightMm: 150,
+    widthMm: 101.6,
+    heightMm: 152.4,
+    cssWidth: '4in',
+    cssHeight: '6in',
     isContinuous: false,
-    description: '150mm লম্বা কুরিয়ার শিপিং লেবেল'
+    description: '4×6 ইঞ্চি লম্বা কুরিয়ার শিপিং লেবেল'
   },
   '80mm': {
     id: '80mm',
@@ -42,6 +48,8 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '80mm POS',
     widthMm: 80,
     heightMm: 'auto',
+    cssWidth: '80mm',
+    cssHeight: 'auto',
     isContinuous: true,
     description: 'স্ট্যান্ডার্ড 80mm থার্মাল পিওএস রসিদ পেপার'
   },
@@ -52,6 +60,8 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '58mm POS',
     widthMm: 58,
     heightMm: 'auto',
+    cssWidth: '58mm',
+    cssHeight: 'auto',
     isContinuous: true,
     description: 'ছোট 58mm ব্লুটুথ থার্মাল রসিদ পেপার'
   },
@@ -62,6 +72,8 @@ export const THERMAL_PAPER_SIZES = {
     shortName: '75×100mm',
     widthMm: 75,
     heightMm: 100,
+    cssWidth: '75mm',
+    cssHeight: '100mm',
     isContinuous: false,
     description: 'ছোট ৩ ইঞ্চি থার্মাল পেপার রোল'
   }
@@ -148,19 +160,79 @@ export function SingleThermalStickerPage({
 
   const is58mm = paperSize === '58mm';
   const is80mm = paperSize === '80mm';
-  const barcodeWidth = is58mm ? 0.95 : is80mm ? 1.05 : 1.15;
-  const barcodeHeight = is58mm ? 14 : is80mm ? 16 : 18;
-  const qrSize = is58mm ? 26 : is80mm ? 28 : 32;
+  const is75mm = paperSize === '75x100';
+  const is4x6 = paperSize === '100x150';
+
+  let barcodeWidth = 1.3;
+  let barcodeHeight = 30;
+  let barcodeFontSize = 9;
+  let qrSize = 48;
+
+  if (is58mm) {
+    barcodeWidth = 0.95;
+    barcodeHeight = 20;
+    barcodeFontSize = 7;
+    qrSize = 32;
+  } else if (is80mm) {
+    barcodeWidth = 1.1;
+    barcodeHeight = 24;
+    barcodeFontSize = 8;
+    qrSize = 40;
+  } else if (is75mm) {
+    barcodeWidth = 1.05;
+    barcodeHeight = itemCount <= 5 ? 26 : 22;
+    barcodeFontSize = 8;
+    qrSize = itemCount <= 5 ? 42 : 36;
+  } else if (is4x6) {
+    barcodeWidth = 1.45;
+    barcodeHeight = itemCount <= 6 ? 42 : 32;
+    barcodeFontSize = 10.5;
+    qrSize = itemCount <= 6 ? 64 : 52;
+  } else {
+    // 4" x 4" (101.6mm x 101.6mm) & 100mm Continuous — full-area balanced sizing
+    if (itemCount <= 2) {
+      barcodeWidth = 1.4;
+      barcodeHeight = 36;
+      barcodeFontSize = 10;
+      qrSize = 56;
+    } else if (itemCount <= 5) {
+      barcodeWidth = 1.3;
+      barcodeHeight = 30;
+      barcodeFontSize = 9;
+      qrSize = 48;
+    } else if (itemCount <= 8) {
+      barcodeWidth = 1.22;
+      barcodeHeight = 26;
+      barcodeFontSize = 8.5;
+      qrSize = 44;
+    } else {
+      barcodeWidth = 1.15;
+      barcodeHeight = 22;
+      barcodeFontSize = 8;
+      qrSize = 38;
+    }
+  }
 
   const storeName = siteSettings?.store_name || 'ম্যাংগো গার্ডেন';
   const storeLogo = siteSettings?.logo_url || '/img/logo.jpg';
   const storePhone = siteSettings?.phone_1 || '01318-007554';
 
   const orderId = String(order.order_id || order.id || 'KB-0000').trim();
-  const customerName = order.name || 'সম্মানিত গ্রাহক';
-  const customerPhone = order.phone || '01XXXXXXXXX';
+  const consignmentId = String(order.consignment_id || '').trim();
+  const trackingCode = String(order.tracking_code || '').trim();
+  const hasCourierConsignment = Boolean(consignmentId);
+  const courierLabelName = hasCourierConsignment
+    ? 'eShipFirst'
+    : siteSettings?.courier_provider || 'Steadfast';
+
+  // Prioritize eShipFirst Consignment ID as the primary courier identifier on labels & barcode
+  const primaryDisplayId = hasCourierConsignment ? `CID #${consignmentId}` : `#${orderId}`;
+  const primaryBarcodeValue = hasCourierConsignment ? consignmentId : orderId;
+
+  const customerName = order.name || order.recipient_name || 'সম্মানিত গ্রাহক';
+  const customerPhone = order.phone || order.recipient_phone || '01XXXXXXXXX';
   const altPhone = order.alt_phone || order.phone_2 || '';
-  const customerAddress = order.address || 'বাংলাদেশ';
+  const customerAddress = order.address || order.recipient_address || 'বাংলাদেশ';
 
   // Area & Zone detection
   const isInsideDhaka =
@@ -197,12 +269,16 @@ export function SingleThermalStickerPage({
 
   const isLastPage = pageIndex === totalPages - 1;
 
-  // Tracking payload for QR Code (Direct verifiable link / Order ID)
-  const qrTrackingUrl = `https://mangogardenbd.com/#order-track?id=${encodeURIComponent(orderId)}`;
+  // Tracking payload for QR Code (uses eShipFirst Consignment/Tracking when available)
+  const qrTrackingUrl = hasCourierConsignment
+    ? trackingCode
+      ? `https://steadfast.com.bd/t/${encodeURIComponent(trackingCode)}`
+      : `https://mangogardenbd.com/#order-track?cid=${encodeURIComponent(consignmentId)}&id=${encodeURIComponent(orderId)}`
+    : `https://mangogardenbd.com/#order-track?id=${encodeURIComponent(orderId)}`;
 
   return (
     <div
-      className={`thermal-sticker-page size-${paperSize} ${densityClass} ${isOnScreen ? 'on-screen' : ''}`}
+      className={`thermal-sticker-page shipping-label size-${paperSize} ${densityClass} ${isOnScreen ? 'on-screen' : ''}`}
       data-paper-size={paperSize}
       data-items-count={itemCount}
     >
@@ -213,17 +289,27 @@ export function SingleThermalStickerPage({
           <div className="ts-brand-text">
             <span className="ts-store-name">{storeName}</span>
             <span className="ts-label-type">
-              SHIPPING LABEL {totalPages > 1 ? `(${pageIndex + 1}/${totalPages})` : ''}
+              {hasCourierConsignment ? 'ESHIPFIRST PARCEL' : 'SHIPPING LABEL'}{' '}
+              {totalPages > 1 ? `(${pageIndex + 1}/${totalPages})` : ''}
             </span>
           </div>
         </div>
 
         <div className="ts-order-col">
           <div className="ts-order-pill">
-            {order.status ? String(order.status).toUpperCase() : 'ORDER'}
+            {hasCourierConsignment
+              ? 'ESHIPFIRST'
+              : order.status
+              ? String(order.status).toUpperCase()
+              : 'ORDER'}
             {totalCopies > 1 ? ` · COPY ${copyIndex}/${totalCopies}` : ''}
           </div>
-          <div className="ts-order-id-large">#{orderId}</div>
+          <div className="ts-order-id-large">{primaryDisplayId}</div>
+          {hasCourierConsignment && (
+            <div className="ts-tracking-sub">
+              {trackingCode ? `TRK: ${trackingCode}` : `REF: #${orderId}`}
+            </div>
+          )}
         </div>
       </div>
 
@@ -252,7 +338,10 @@ export function SingleThermalStickerPage({
         </div>
 
         <div className="ts-cust-meta-row">
-          <span>Courier: {siteSettings?.courier_provider || 'Steadfast'}</span>
+          <span>
+            Courier: {courierLabelName}
+            {hasCourierConsignment && trackingCode ? ` · Ref #${orderId}` : ''}
+          </span>
           <span>Date: {orderDate}</span>
         </div>
       </div>
@@ -328,10 +417,10 @@ export function SingleThermalStickerPage({
         <div className="ts-footer">
           <div className="ts-barcode-col">
             <BarcodeRenderer
-              value={orderId}
+              value={primaryBarcodeValue}
               width={barcodeWidth}
               height={barcodeHeight}
-              fontSize={is58mm ? 6.5 : 7.5}
+              fontSize={barcodeFontSize}
               displayValue={true}
             />
             <div className="ts-notice-text">
@@ -339,13 +428,13 @@ export function SingleThermalStickerPage({
             </div>
             <div className="ts-meta-sub">
               <span>Mango Garden Official</span>
-              <span>Page 1/1</span>
+              <span>Page {pageIndex + 1}/{totalPages}</span>
             </div>
           </div>
 
           <div className="ts-qr-col">
             <QrCodeRenderer value={qrTrackingUrl} size={qrSize} />
-            <span style={{ fontSize: '5.5px', fontWeight: 800, marginTop: '1px' }}>VERIFY</span>
+            <span className="ts-qr-caption">VERIFY</span>
           </div>
         </div>
       </div>
