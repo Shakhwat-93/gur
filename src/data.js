@@ -12,6 +12,8 @@ export const BRAND_IMAGES = {
   logo: '/img/file_00000000bb8c8208935485c59b7b5c83.png',
   heroPatali: '/img/file_000000007a3482088e44b1347e5afa94.png',
   combo990: '/img/file_000000008a508211871f2da956f12e9c.png',
+  foilPatali: '/img/gur_foil_patali.png',
+  chocolateGur: '/img/FB_IMG_1793858028230.jpg.jpeg',
   makerStory: '/img/file_00000000ba2c8208b0aa4b8c2b4fc3c3.png',
   craftVideo: '/img/lv_0_20261109191525.mp4',
   craftVideoPoster: '/img/lv_0_poster.jpg',
@@ -126,8 +128,8 @@ export const gurPrices = [
     tag: 'হাইজেনিক প্যাক',
     pairing: 'সরাসরি খাবার ও উপহার',
     desc: 'নরম, মাখনের মতো মসৃণ ও স্বাস্থ্যসম্মত প্যাকিং',
-    image: '/img/FB_IMG_1793858028230.jpg.jpeg',
-    pos: 'center 55%',
+    image: '/img/gur_foil_patali.png',
+    pos: 'center center',
     featured: true,
   },
   {
@@ -138,9 +140,8 @@ export const gurPrices = [
     tag: 'প্রিমিয়াম স্পেশাল',
     pairing: 'ডেজার্ট ও ফ্যামিলি ফেভারিট',
     desc: 'গাঢ় চকলেট রঙ, অসাধারণ ফ্লেভার ও রিচ দানাদার স্বাদ',
-    image: '/img/file_000000008a508211871f2da956f12e9c.png',
-    pos: '10% 52%',
-    zoomFocus: true,
+    image: '/img/FB_IMG_1793858028230.jpg.jpeg',
+    pos: 'center center',
   },
 ]
 

@@ -503,10 +503,11 @@ input, textarea, select {
 .hero-subject-img {
   position: relative;
   z-index: 2;
-  max-width: 82%;
-  max-height: 82%;
+  max-width: 86%;
+  max-height: 86%;
   object-fit: contain;
-  filter: drop-shadow(0 14px 20px rgba(42, 26, 18, 0.22));
+  border-radius: 12px;
+  filter: drop-shadow(0 14px 22px rgba(42, 26, 18, 0.22));
 }
 
 /* Secondary Circular Overlap Image */

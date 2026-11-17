@@ -138,7 +138,7 @@ function HeroSection({ onPickAndOrder }) {
 
       if (isReduced) {
         gsap.set(
-          '.hero-brand-emblem, .hero-intro-line, .hero-title-line, .hero-visual-card, .stamp-badge, .hero-secondary-badge, .hero-subject-img, .hero-bar-info, .hero-bottom-bar .btn-primary',
+          '.hero-brand-emblem, .hero-intro-line, .hero-title-line, .hero-visual-card, .stamp-badge, .hero-subject-img, .hero-bar-info, .hero-bottom-bar .btn-primary',
           {
             opacity: 1,
             y: 0,
@@ -202,15 +202,7 @@ function HeroSection({ onPickAndOrder }) {
         ease: 'back.out(2)'
       }, '-=0.35')
 
-      // 7. Secondary circular badge pop in
-      tl.from('.hero-secondary-badge', {
-        scale: 0,
-        opacity: 0,
-        duration: 0.4,
-        ease: 'back.out(2.2)'
-      }, '-=0.3')
-
-      // 8. Bottom bar items
+      // 7. Bottom bar items
       tl.from('.hero-bar-info, .hero-bottom-bar .btn-primary', {
         y: 10,
         opacity: 0,
@@ -218,22 +210,13 @@ function HeroSection({ onPickAndOrder }) {
         stagger: 0.08
       }, '-=0.2')
 
-      // 9. Continuous slow sunburst ambient rotation
+      // 8. Continuous slow sunburst ambient rotation
       gsap.to('.hero-sunburst-bg', {
         rotation: 360,
         duration: 65,
         repeat: -1,
         ease: 'none',
         transformOrigin: 'center center'
-      })
-
-      // 10. Subtle floating motion for secondary badge
-      gsap.to('.hero-secondary-badge', {
-        y: -5,
-        duration: 2.4,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut'
       })
     })
   }, { scope: heroRef })
@@ -269,19 +252,14 @@ function HeroSection({ onPickAndOrder }) {
             {/* Season Stamp Overlapping Top-Left */}
             <SeasonStampBadge line1="নতুন মৌসুমে" line2="শীত ১৪৩১" />
 
-            {/* Main Subject Photo */}
+            {/* Main Subject Photo — Flagship 990 Combo */}
             <img
-              src={BRAND_IMAGES.heroPatali}
-              alt="ঐতিহ্যবাহী খাঁটি খেজুরের পাটালি গুড়"
+              src={BRAND_IMAGES.combo990}
+              alt="৫ ধরনের খাঁটি খেজুরের গুড়ের বিশেষ প্যাকেজ (৯৯০ কম্বো)"
               className="hero-subject-img"
               loading="eager"
               fetchpriority="high"
             />
-
-            {/* Secondary Circular Image Overlapping Bottom-Right */}
-            <div className="hero-secondary-badge" title="৫ ধরনের গুড় কম্বো প্যাকেজ">
-              <img src={BRAND_IMAGES.combo990} alt="কম্বো গুড় প্রিভিউ" />
-            </div>
           </div>
 
           {/* Hero Bottom Joined Bar */}
