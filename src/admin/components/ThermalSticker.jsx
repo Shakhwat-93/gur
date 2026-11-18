@@ -5,17 +5,29 @@ import { getEffectiveOrderQty } from '../../lib/orderHelper';
 import './thermalPrint.css';
 
 export const THERMAL_PAPER_SIZES = {
+  '100x150': {
+    id: '100x150',
+    name: '100mm × 150mm (4" × 6" Courier Shipping Label)',
+    label: '100mm × 150mm (Standard)',
+    shortName: '100×150mm',
+    widthMm: 100,
+    heightMm: 150,
+    cssWidth: '100mm',
+    cssHeight: '150mm',
+    isContinuous: false,
+    description: '100mm × 150mm স্ট্যান্ডার্ড কুরিয়ার শিপিং লেবেল রোল (ডিফল্ট)'
+  },
   '100x100': {
     id: '100x100',
-    name: '4" × 4" (101.6mm × 101.6mm)',
-    label: '4" × 4" Sticker (101.6×101.6mm)',
+    name: '4" × 4" (100mm × 100mm Square)',
+    label: '4" × 4" (100×100mm)',
     shortName: '4" × 4"',
-    widthMm: 101.6,
-    heightMm: 101.6,
-    cssWidth: '4in',
-    cssHeight: '4in',
+    widthMm: 100,
+    heightMm: 100,
+    cssWidth: '100mm',
+    cssHeight: '100mm',
     isContinuous: false,
-    description: '4 ইঞ্চি বাই 4 ইঞ্চি (101.6mm × 101.6mm) ফুল-এরিয়া স্টিকার রোল'
+    description: '100mm × 100mm (৪×৪ ইঞ্চি) স্কয়ার স্টিকার রোল'
   },
   'continuous': {
     id: 'continuous',
@@ -28,18 +40,6 @@ export const THERMAL_PAPER_SIZES = {
     cssHeight: 'auto',
     isContinuous: true,
     description: '100mm রসিদ রোল (যত আইটেমই থাকুক ১ পেজে একটানা প্রিন্ট)'
-  },
-  '100x150': {
-    id: '100x150',
-    name: '4" × 6" (101.6mm × 152.4mm Courier)',
-    label: '4" × 6" (100×150mm)',
-    shortName: '4" × 6"',
-    widthMm: 101.6,
-    heightMm: 152.4,
-    cssWidth: '4in',
-    cssHeight: '6in',
-    isContinuous: false,
-    description: '4×6 ইঞ্চি লম্বা কুরিয়ার শিপিং লেবেল'
   },
   '80mm': {
     id: '80mm',
@@ -79,7 +79,7 @@ export const THERMAL_PAPER_SIZES = {
   }
 };
 
-export const DEFAULT_PAPER_SIZE = '100x100';
+export const DEFAULT_PAPER_SIZE = '100x150';
 
 /**
  * Normalizes and extracts structured items for an order.
@@ -161,12 +161,12 @@ export function SingleThermalStickerPage({
   const is58mm = paperSize === '58mm';
   const is80mm = paperSize === '80mm';
   const is75mm = paperSize === '75x100';
-  const is4x6 = paperSize === '100x150';
+  const is100x150 = paperSize === '100x150';
 
-  let barcodeWidth = 1.3;
-  let barcodeHeight = 30;
-  let barcodeFontSize = 9;
-  let qrSize = 48;
+  let barcodeWidth = 1.4;
+  let barcodeHeight = 38;
+  let barcodeFontSize = 10;
+  let qrSize = 56;
 
   if (is58mm) {
     barcodeWidth = 0.95;
@@ -183,13 +183,31 @@ export function SingleThermalStickerPage({
     barcodeHeight = itemCount <= 5 ? 26 : 22;
     barcodeFontSize = 8;
     qrSize = itemCount <= 5 ? 42 : 36;
-  } else if (is4x6) {
-    barcodeWidth = 1.45;
-    barcodeHeight = itemCount <= 6 ? 42 : 32;
-    barcodeFontSize = 10.5;
-    qrSize = itemCount <= 6 ? 64 : 52;
+  } else if (is100x150) {
+    // 100mm × 150mm: generous vertical area allows high-readability barcode and large QR code
+    if (itemCount <= 3) {
+      barcodeWidth = 1.5;
+      barcodeHeight = 44;
+      barcodeFontSize = 11;
+      qrSize = 64;
+    } else if (itemCount <= 6) {
+      barcodeWidth = 1.45;
+      barcodeHeight = 40;
+      barcodeFontSize = 10.5;
+      qrSize = 58;
+    } else if (itemCount <= 9) {
+      barcodeWidth = 1.35;
+      barcodeHeight = 34;
+      barcodeFontSize = 9.5;
+      qrSize = 52;
+    } else {
+      barcodeWidth = 1.25;
+      barcodeHeight = 28;
+      barcodeFontSize = 9;
+      qrSize = 46;
+    }
   } else {
-    // 4" x 4" (101.6mm x 101.6mm) & 100mm Continuous — full-area balanced sizing
+    // 100mm x 100mm & continuous — full-area balanced sizing
     if (itemCount <= 2) {
       barcodeWidth = 1.4;
       barcodeHeight = 36;

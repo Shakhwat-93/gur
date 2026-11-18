@@ -721,7 +721,7 @@ export default function OrdersManager({ focusOrderId = null, onClearFocusOrder =
                               type="button"
                               className="adm-btn adm-btn-sm adm-btn-print"
                               onClick={() => handlePrintSingle(ord)}
-                              title="Print 75mm × 100mm Direct Thermal Sticker"
+                              title="Print 100mm × 150mm Direct Thermal Sticker"
                             >
                               <Printer size={13} />
                               <span>{isPrinted ? 'Reprint' : 'Print'}</span>
@@ -888,7 +888,7 @@ export default function OrdersManager({ focusOrderId = null, onClearFocusOrder =
                         type="button"
                         className="adm-btn adm-card-btn print"
                         onClick={() => handlePrintSingle(ord)}
-                        title="Print 75mm × 100mm Direct Thermal Sticker"
+                        title="Print 100mm × 150mm Direct Thermal Sticker"
                       >
                         <Printer size={15} />
                         <span>{isPrinted ? 'Reprint' : 'Print'}</span>
