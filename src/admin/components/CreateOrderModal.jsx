@@ -61,6 +61,13 @@ export default function CreateOrderModal({
   const [discount, setDiscount] = useState(0);
   const [catalogSelectId, setCatalogSelectId] = useState(orderOptions[0]?.id || '');
 
+  // Custom Manual Product State
+  const [itemAddMode, setItemAddMode] = useState('catalog'); // 'catalog' | 'custom'
+  const [customName, setCustomName] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
+  const [customUnit, setCustomUnit] = useState('কেজি');
+  const [customQty, setCustomQty] = useState(1);
+
   // Submission & Post-Creation States
   const [submitting, setSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState(null);
@@ -81,6 +88,10 @@ export default function CreateOrderModal({
 
   // Add Item from Catalog
   const handleAddItem = () => {
+    if (catalogSelectId === '__CUSTOM__') {
+      setItemAddMode('custom');
+      return;
+    }
     const opt = orderOptions.find((o) => o.id === catalogSelectId);
     if (!opt) return;
 
@@ -99,7 +110,8 @@ export default function CreateOrderModal({
           price: opt.price,
           quantity: 1,
           unit: opt.unit || 'কেজি',
-          isCombo: !!opt.isCombo
+          isCombo: !!opt.isCombo,
+          isCustom: false
         }
       ];
     });
@@ -108,6 +120,45 @@ export default function CreateOrderModal({
     if (opt.freeDelivery) {
       setDeliveryCharge(0);
     }
+  };
+
+  // Add Custom / Manual Product (even if not in catalog)
+  const handleAddCustomItem = () => {
+    const trimmedName = customName.trim();
+    if (!trimmedName) {
+      setErrors((prev) => ({ ...prev, customName: 'পণ্যের নাম লিখুন' }));
+      return;
+    }
+    const parsedPrice = Number(customPrice);
+    if (customPrice === '' || isNaN(parsedPrice) || parsedPrice < 0) {
+      setErrors((prev) => ({ ...prev, customPrice: 'সঠিক মূল্য দিন (৳)' }));
+      return;
+    }
+    const parsedQty = Math.max(1, parseInt(customQty, 10) || 1);
+
+    setSelectedItems((prev) => [
+      ...prev,
+      {
+        id: 'custom-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+        name: trimmedName,
+        price: parsedPrice,
+        quantity: parsedQty,
+        unit: customUnit.trim() || 'পিস',
+        isCombo: false,
+        isCustom: true
+      }
+    ]);
+
+    setCustomName('');
+    setCustomPrice('');
+    setCustomQty(1);
+    setErrors((prev) => {
+      const copy = { ...prev };
+      delete copy.customName;
+      delete copy.customPrice;
+      delete copy.items;
+      return copy;
+    });
   };
 
   // Quantity adjustments
@@ -119,6 +170,38 @@ export default function CreateOrderModal({
         return prev.filter((_, idx) => idx !== index);
       }
       copy[index].quantity = newQty;
+      return copy;
+    });
+  };
+
+  const handleSetQty = (index, val) => {
+    const qty = Math.max(1, parseInt(val, 10) || 1);
+    setSelectedItems((prev) => {
+      const copy = [...prev];
+      if (copy[index]) {
+        copy[index].quantity = qty;
+      }
+      return copy;
+    });
+  };
+
+  const handleUpdatePrice = (index, val) => {
+    const price = Number(val);
+    setSelectedItems((prev) => {
+      const copy = [...prev];
+      if (copy[index]) {
+        copy[index].price = isNaN(price) || price < 0 ? 0 : price;
+      }
+      return copy;
+    });
+  };
+
+  const handleUpdateName = (index, val) => {
+    setSelectedItems((prev) => {
+      const copy = [...prev];
+      if (copy[index]) {
+        copy[index].name = val;
+      }
       return copy;
     });
   };
@@ -465,28 +548,167 @@ export default function CreateOrderModal({
                   <span>Items & Pricing (পণ্য ও হিসাব)</span>
                 </div>
 
-                {/* Item Selector */}
+                {/* Item Addition Section (Catalog Preset OR Custom Manual Entry) */}
                 <div className="com-form-group">
-                  <label className="com-label">
-                    <span>Select Product to Add (পণ্য যোগ করুন)</span>
-                  </label>
-                  <div className="com-add-item-wrap">
-                    <select
-                      className="com-select com-add-item-select"
-                      value={catalogSelectId}
-                      onChange={(e) => setCatalogSelectId(e.target.value)}
-                    >
-                      {orderOptions.map((opt) => (
-                        <option key={opt.id} value={opt.id}>
-                          {opt.label} — ৳{opt.price} {opt.isCombo ? '(কম্বো)' : `/${opt.unit}`}
-                        </option>
-                      ))}
-                    </select>
-                    <button type="button" className="com-add-btn" onClick={handleAddItem}>
-                      <Plus size={16} />
-                      <span>Add</span>
-                    </button>
+                  <div className="com-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <span>Add Product (পণ্য যোগ করুন)</span>
+                    <div className="com-mode-toggle-pills">
+                      <button
+                        type="button"
+                        className={`com-mode-pill ${itemAddMode === 'catalog' ? 'active' : ''}`}
+                        onClick={() => setItemAddMode('catalog')}
+                      >
+                        <ShoppingBag size={12} />
+                        <span>ওয়েবসাইট তালিকা</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`com-mode-pill ${itemAddMode === 'custom' ? 'active' : ''}`}
+                        onClick={() => setItemAddMode('custom')}
+                      >
+                        <Plus size={12} />
+                        <span>কাস্টম / নতুন পণ্য</span>
+                      </button>
+                    </div>
                   </div>
+
+                  {itemAddMode === 'catalog' ? (
+                    <div className="com-add-item-wrap">
+                      <select
+                        className="com-select com-add-item-select"
+                        value={catalogSelectId}
+                        onChange={(e) => {
+                          if (e.target.value === '__CUSTOM__') {
+                            setItemAddMode('custom');
+                          } else {
+                            setCatalogSelectId(e.target.value);
+                          }
+                        }}
+                      >
+                        <optgroup label="ওয়েবসাইটের পণ্যসমূহ">
+                          {orderOptions.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label} — ৳{opt.price} {opt.isCombo ? '(কম্বো)' : `/${opt.unit}`}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="অন্যান্য">
+                          <option value="__CUSTOM__">✍️ অন্য কোনো পণ্য ম্যানুয়ালি লিখুন...</option>
+                        </optgroup>
+                      </select>
+                      <button type="button" className="com-add-btn" onClick={handleAddItem}>
+                        <Plus size={16} />
+                        <span>Add</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="com-custom-item-card">
+                      <div className="com-custom-row-1">
+                        <input
+                          type="text"
+                          className={`com-input ${errors.customName ? 'error' : ''}`}
+                          placeholder="পণ্যের নাম লিখুন (যেমন: সুন্দরবনের মধু, খাঁটি সরিষার তেল...)"
+                          value={customName}
+                          onChange={(e) => {
+                            setCustomName(e.target.value);
+                            if (errors.customName) {
+                              setErrors((prev) => {
+                                const c = { ...prev };
+                                delete c.customName;
+                                return c;
+                              });
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomItem();
+                            }
+                          }}
+                          autoFocus
+                        />
+                      </div>
+                      {errors.customName && (
+                        <span className="com-error-text">{errors.customName}</span>
+                      )}
+
+                      <div className="com-custom-row-2">
+                        <div className="com-custom-field price">
+                          <span className="com-input-prefix">৳</span>
+                          <input
+                            type="number"
+                            min="0"
+                            className={`com-input ${errors.customPrice ? 'error' : ''}`}
+                            placeholder="দর (৳)"
+                            value={customPrice}
+                            onChange={(e) => {
+                              setCustomPrice(e.target.value);
+                              if (errors.customPrice) {
+                                setErrors((prev) => {
+                                  const c = { ...prev };
+                                  delete c.customPrice;
+                                  return c;
+                                });
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCustomItem();
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="com-custom-field unit">
+                          <select
+                            className="com-select"
+                            value={customUnit}
+                            onChange={(e) => setCustomUnit(e.target.value)}
+                          >
+                            <option value="কেজি">কেজি</option>
+                            <option value="প্যাকেজ">প্যাকেজ</option>
+                            <option value="জার">জার</option>
+                            <option value="পিস">পিস</option>
+                            <option value="লিটার">লিটার</option>
+                            <option value="বক্স">বক্স</option>
+                            <option value="গ্রাম">গ্রাম</option>
+                            <option value="সেট">সেট</option>
+                          </select>
+                        </div>
+
+                        <div className="com-custom-field qty">
+                          <input
+                            type="number"
+                            min="1"
+                            className="com-input"
+                            title="পরিমাণ"
+                            placeholder="পরিমাণ"
+                            value={customQty}
+                            onChange={(e) => setCustomQty(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAddCustomItem();
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          className="com-add-btn com-custom-add-btn"
+                          onClick={handleAddCustomItem}
+                        >
+                          <Plus size={16} />
+                          <span>যোগ করুন</span>
+                        </button>
+                      </div>
+                      {errors.customPrice && (
+                        <span className="com-error-text">{errors.customPrice}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Selected Items List */}
@@ -507,9 +729,37 @@ export default function CreateOrderModal({
                       selectedItems.map((item, idx) => (
                         <div key={`${item.id}-${idx}`} className="com-item-row">
                           <div className="com-item-details">
-                            <div className="com-item-name">{item.name}</div>
-                            <div className="com-item-meta">
-                              ৳{item.price} / {item.unit}
+                            <div className="com-item-name-wrap">
+                              {item.isCustom ? (
+                                <input
+                                  type="text"
+                                  className="com-item-name-input"
+                                  value={item.name}
+                                  onChange={(e) => handleUpdateName(idx, e.target.value)}
+                                  placeholder="পণ্যের নাম"
+                                  title="পণ্যের নাম পরিবর্তন করতে পারবেন"
+                                />
+                              ) : (
+                                <div className="com-item-name" title={item.name}>
+                                  {item.name}
+                                </div>
+                              )}
+                              {item.isCustom && (
+                                <span className="com-custom-badge">কাস্টম</span>
+                              )}
+                            </div>
+
+                            <div className="com-item-meta-editable">
+                              <span className="com-meta-label">দর: ৳</span>
+                              <input
+                                type="number"
+                                min="0"
+                                className="com-item-price-input"
+                                value={item.price}
+                                onChange={(e) => handleUpdatePrice(idx, e.target.value)}
+                                title="দর/একক মূল্য পরিবর্তন করুন"
+                              />
+                              <span className="com-item-unit-text">/{item.unit}</span>
                             </div>
                           </div>
 
@@ -522,9 +772,10 @@ export default function CreateOrderModal({
                               −
                             </button>
                             <input
-                              type="text"
-                              readOnly
+                              type="number"
+                              min="1"
                               value={item.quantity}
+                              onChange={(e) => handleSetQty(idx, e.target.value)}
                               className="com-qty-input"
                             />
                             <button
