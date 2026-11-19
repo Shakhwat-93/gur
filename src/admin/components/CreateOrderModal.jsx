@@ -341,7 +341,7 @@ export default function CreateOrderModal({
   };
 
   return (
-    <div className="com-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="com-backdrop" role="dialog" aria-modal="true">
       <div className="com-sheet" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="com-header">
