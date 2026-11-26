@@ -15,10 +15,10 @@ export const DEFAULT_SITE_SETTINGS = {
   facebook_page: 'https://www.facebook.com/mangogardenbd1',
   email: 'info@mangogardenbd.com',
   address: 'ঢাকা ও সারা বাংলাদেশ',
-  announcement_text: '🌴 ৫ ধরনের খাঁটি খেজুরের গুড় মাত্র ৯৯০৳ (ফ্রি ডেলিভারি) · সারা বাংলাদেশে ক্যাশ অন ডেলিভারি!',
+  announcement_text: '🌴 গাছির খাঁটি খেজুরের গুড় · ৩ কেজিতে ৫০০ গ্রাম ঝোলা গুড় ফ্রি · সারা বাংলাদেশে ক্যাশ অন ডেলিভারি!',
   announcement_enabled: true,
   currency_symbol: '৳',
-  free_shipping_text: 'কম্বো অফারে সারা দেশে ফ্রি ডেলিভারি',
+  free_shipping_text: 'সারা দেশে ক্যাশ অন হোম ডেলিভারি',
   cod_enabled: true,
   cod_notice: 'অর্ডার করার পূর্বে অনুগ্রহ করে নিশ্চিত হয়ে অর্ডার করুন। অযথা অর্ডার করে কুরিয়ার চার্জ অপচয় করা থেকে বিরত থাকুন।',
   timer_enabled: true,
@@ -99,6 +99,9 @@ export function CmsProvider({ children }) {
       const { data: sData } = await supabase.from('site_settings').select('*').eq('id', 'general').maybeSingle();
       if (sData?.data) {
         const mergedSettings = { ...DEFAULT_SITE_SETTINGS, ...sData.data };
+        if (mergedSettings.store_name) {
+          mergedSettings.store_name = String(mergedSettings.store_name).replace(/ম্যাঙ্গো/g, 'ম্যাংগো');
+        }
         if (!mergedSettings.phone_1 || /000000/.test(mergedSettings.phone_1)) {
           mergedSettings.phone_1 = DEFAULT_SITE_SETTINGS.phone_1;
         }

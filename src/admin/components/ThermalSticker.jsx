@@ -231,7 +231,8 @@ export function SingleThermalStickerPage({
     }
   }
 
-  const storeName = siteSettings?.store_name || 'ম্যাংগো গার্ডেন';
+  const rawStoreName = siteSettings?.store_name || 'ম্যাংগো গার্ডেন';
+  const storeName = String(rawStoreName).replace(/ম্যাঙ্গো/g, 'ম্যাংগো');
   const storeLogo = siteSettings?.logo_url || '/img/logo.jpg';
   const storePhone = siteSettings?.phone_1 || '01318-007554';
 

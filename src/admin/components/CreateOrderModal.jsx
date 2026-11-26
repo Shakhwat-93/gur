@@ -57,23 +57,22 @@ export default function CreateOrderModal({
 
   // Selected Items State: array of { id, name, price, quantity, unit }
   const [selectedItems, setSelectedItems] = useState(() => {
-    // Default to best seller combo pack
-    const defaultCombo = orderOptions.find((o) => o.isCombo) || orderOptions[0];
-    return defaultCombo
+    const defaultItem = orderOptions[0];
+    return defaultItem
       ? [
           {
-            id: defaultCombo.id,
-            name: defaultCombo.label,
-            price: defaultCombo.price,
+            id: defaultItem.id,
+            name: defaultItem.label,
+            price: defaultItem.price,
             quantity: 1,
-            unit: defaultCombo.unit || 'প্যাকেজ',
-            isCombo: true
+            unit: defaultItem.unit || 'কেজি',
+            isCombo: false
           }
         ]
       : [];
   });
 
-  const [deliveryCharge, setDeliveryCharge] = useState(0); // Combo default is free shipping
+  const [deliveryCharge, setDeliveryCharge] = useState(80); // Default Inside Dhaka shipping
   const [discount, setDiscount] = useState(0);
   const [catalogSelectId, setCatalogSelectId] = useState(orderOptions[0]?.id || '');
 

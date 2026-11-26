@@ -83,7 +83,7 @@ function HeritageHeader({ totalItems, grandTotal, onOpenCheckout, siteSettings }
   return (
     <>
       <div className="top-notice-strip">
-        📦 সারা বাংলাদেশে ক্যাশ অন ডেলিভারি · ৯৯০৳ কম্বোতে ফ্রি হোম ডেলিভারি
+        📦 সারা বাংলাদেশে ক্যাশ অন ডেলিভারি · ৩ কেজিতে ৫০০ গ্রাম ঝোলা গুড় ফ্রি!
       </div>
       <header className="heritage-header">
         <div className="container heritage-header-inner">
@@ -252,10 +252,10 @@ function HeroSection({ onPickAndOrder }) {
             {/* Season Stamp Overlapping Top-Left */}
             <SeasonStampBadge line1="নতুন মৌসুমে" line2="শীত ১৪৩১" />
 
-            {/* Main Subject Photo — Flagship 990 Combo */}
+            {/* Main Subject Photo — Signature Patali Gur */}
             <img
-              src={BRAND_IMAGES.combo990}
-              alt="৫ ধরনের খাঁটি খেজুরের গুড়ের বিশেষ প্যাকেজ (৯৯০ কম্বো)"
+              src={BRAND_IMAGES.heroPatali}
+              alt="গাছির খাঁটি রসে তৈরি আসল খেজুরের গুড়"
               className="hero-subject-img"
               loading="eager"
               fetchpriority="high"
@@ -266,12 +266,12 @@ function HeroSection({ onPickAndOrder }) {
           <div className="hero-bottom-bar">
             <div className="hero-bar-info">
               <strong>ক্যাশ অন ডেলিভারি</strong>
-              <small>৯৯০৳ কম্বোতে ফ্রি ডেলিভারি · সারা বাংলাদেশে হোম ডেলিভারি</small>
+              <small>সারা বাংলাদেশে হোম ডেলিভারি · ৩ কেজিতে ৫০০ গ্রাম ঝোলা গুড় ফ্রি</small>
             </div>
             <button
               type="button"
               className="btn-primary"
-              onClick={(e) => onPickAndOrder('gur-combo-990', e)}
+              onClick={(e) => onPickAndOrder('gur-gol-khuri', e)}
             >
               <span>অর্ডার করুন</span>
               <span className="btn-arrow-circle" aria-hidden="true">→</span>
@@ -369,10 +369,10 @@ function MenuIntroSection({ onPickAndOrder, onOpenVideoModal }) {
           <div className="menu-product-overlays">
             <div
               className="menu-mini-thumb"
-              onClick={(e) => onPickAndOrder('gur-combo-990', e)}
-              title="৯৯০৳ কম্বো প্যাকেজ"
+              onClick={(e) => onPickAndOrder('gur-gol-khuri', e)}
+              title="গোল বা খুরি পাটালি গুড়"
             >
-              <img src={BRAND_IMAGES.combo990} alt="কম্বো গুড়" />
+              <img src={BRAND_IMAGES.heroPatali} alt="গোল পাটালি গুড়" />
             </div>
             <div
               className="menu-mini-thumb"
@@ -419,7 +419,6 @@ function MenuIntroSection({ onPickAndOrder, onOpenVideoModal }) {
    4. SECTION 3: PRODUCT GRID (§6)
    ========================================================================== */
 function ProductGridSection({ onPickAndOrder }) {
-  const combo = combos[0]
   const gridSecRef = useRef(null)
 
   useGSAP(() => {
@@ -462,44 +461,6 @@ function ProductGridSection({ onPickAndOrder }) {
         </div>
 
         <div className="product-grid">
-          {/* Featured Signature Combo Card (Spans 2 columns) */}
-          <article className="product-card span-2">
-            <div className="featured-combo-content">
-              <div className="card-img-well">
-                <img src={combo.image} alt={combo.title} loading="lazy" />
-              </div>
-
-              <div className="featured-combo-details">
-                <div className="featured-badge-row">
-                  <span className="tag">বেস্ট সেলার কম্বো</span>
-                  <span className="latin-small" style={{ color: '#2E7D32', fontWeight: 600 }}>
-                    ✓ ফ্রি হোম ডেলিভারি
-                  </span>
-                </div>
-                <h3 className="card-title" style={{ minHeight: 'auto', marginBottom: '4px' }}>
-                  {combo.shortTitle}
-                </h3>
-                <p style={{ fontSize: '12px', color: '#7B6A5B', marginBottom: '8px' }}>
-                  হাফ কেজি করে ৫ ধরনের খাঁটি খেজুর গুড় (মোট ২.৫ কেজি)
-                </p>
-                <div className="card-meta-row" style={{ marginTop: 'auto', marginBottom: '8px' }}>
-                  <span className="card-unit">সর্বমোট ২.৫ কেজি</span>
-                  <span className="card-price">৳{taka(combo.price)}</span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="btn-primary btn-card"
-              style={{ marginTop: '10px' }}
-              onClick={(e) => onPickAndOrder(combo.id, e)}
-            >
-              <span>অর্ডার করুন</span>
-              <span className="btn-arrow-circle" aria-hidden="true">→</span>
-            </button>
-          </article>
-
           {/* 6 Loose Kg Products in 2-Column Grid */}
           {gurPrices.map((prod) => (
             <article className="product-card" key={prod.id}>
@@ -671,10 +632,8 @@ function OrderMemoSection({
   const beginCheckoutRef = useRef(onBeginCheckout)
   beginCheckoutRef.current = onBeginCheckout
 
-  const comboOption = orderOptions.find((o) => o.isCombo)
   const kgOptions = orderOptions.filter((o) => !o.isCombo)
 
-  const comboQty = Math.min(comboOption.max, selected[comboOption.id] || 0)
   const looseEntries = kgOptions
     .map((opt) => ({ opt, qty: Math.min(opt.max, selected[opt.id] || 0) }))
     .filter((entry) => entry.qty > 0)
@@ -683,12 +642,11 @@ function OrderMemoSection({
   const hasFreeJholaBonus = looseKg >= FREE_BONUS_MIN_KG
   const progressRatio = Math.min(1, looseKg / FREE_BONUS_MIN_KG)
 
-  const comboSubtotal = comboQty * comboOption.price
   const looseSubtotal = looseEntries.reduce((sum, entry) => sum + entry.opt.price * entry.qty, 0)
-  const subtotal = comboSubtotal + looseSubtotal
+  const subtotal = looseSubtotal
 
-  const hasItems = comboQty > 0 || looseKg > 0
-  const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
+  const hasItems = looseKg > 0
+  const delivery = !hasItems ? 0 : DELIVERY_CHARGE
   const total = subtotal + delivery
 
   // Live Total Number Tween
@@ -793,7 +751,7 @@ function OrderMemoSection({
 
   // Current preview image
   const currentPreviewItem =
-    orderOptions.find((o) => o.id === activePreviewId) || comboOption
+    orderOptions.find((o) => o.id === activePreviewId) || orderOptions[0]
 
   useEffect(() => {
     const el = sectionRef.current
@@ -848,18 +806,6 @@ function OrderMemoSection({
     const itemsPayload = []
     const summaryParts = []
 
-    if (comboQty > 0) {
-      itemsPayload.push({
-        id: comboOption.id,
-        name: comboOption.label,
-        price: comboOption.price,
-        quantity: comboQty,
-        unit: comboOption.unit,
-        total: comboOption.price * comboQty
-      })
-      summaryParts.push(`${comboOption.label} (${toBn(comboQty)} ${comboOption.unit})`)
-    }
-
     looseEntries.forEach(({ opt, qty }) => {
       itemsPayload.push({
         id: opt.id,
@@ -885,9 +831,9 @@ function OrderMemoSection({
     }
 
     const formattedProductName = summaryParts.join(' + ')
-    const totalCount = comboQty + looseKg
-    const primaryUnit = comboQty > 0 && looseKg === 0 ? 'প্যাকেজ' : looseKg > 0 && comboQty === 0 ? 'কেজি' : 'আইটেম'
-    const primaryPkgId = comboQty > 0 && looseKg === 0 ? comboOption.id : looseEntries[0]?.opt.id || comboOption.id
+    const totalCount = looseKg
+    const primaryUnit = 'কেজি'
+    const primaryPkgId = looseEntries[0]?.opt.id || orderOptions[0]?.id || 'gur-gol-khuri'
 
     const orderPayload = {
       order_id: orderId,
@@ -1008,75 +954,7 @@ function OrderMemoSection({
 
                 {/* Product List */}
                 <div className="memo-product-list">
-                  {/* 1. Combo Package Row */}
-                  <div
-                    id={`memo-row-${comboOption.id}`}
-                    className={`memo-product-row ${comboQty > 0 ? 'checked' : ''}`}
-                  >
-                    <div
-                      className="memo-chk-box"
-                      onClick={() => {
-                        onToggleItem(comboOption.id)
-                        onSelectPreview(comboOption.id)
-                      }}
-                      role="checkbox"
-                      aria-checked={comboQty > 0}
-                    >
-                      <svg
-                        className={`memo-tick-svg ${comboQty > 0 ? 'checked' : ''}`}
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    </div>
-                    <div
-                      className="memo-row-thumb"
-                      onClick={() => onSelectPreview(comboOption.id)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <img src={comboOption.image} alt={comboOption.label} />
-                    </div>
-                    <div className="memo-row-meta">
-                      <div className="memo-row-name">{comboOption.label}</div>
-                      <div className="memo-row-sub" style={{ color: '#2E7D32', fontWeight: 600 }}>
-                        হোম ডেলিভারি সম্পূর্ণ ফ্রি! (২.৫ কেজি)
-                      </div>
-                      {comboQty > 0 && (
-                        <div className="memo-stepper">
-                          <button
-                            type="button"
-                            onClick={() => handleStepperChange(comboOption.id, comboQty - 1, comboOption.max)}
-                            aria-label="প্যাকেজ কমান"
-                          >
-                            −
-                          </button>
-                          <span id={`stepper-qty-${comboOption.id}`} className="memo-stepper-val">
-                            {toBn(comboQty)} প্যাক
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleStepperChange(comboOption.id, comboQty + 1, comboOption.max)}
-                            disabled={comboQty >= comboOption.max}
-                            aria-label="প্যাকেজ বাড়ান"
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="memo-row-price-col">
-                      <span className="memo-row-price">৳{taka(comboOption.price)}</span>
-                    </div>
-                  </div>
-
-                  {/* 2. Loose Kg Products Rows */}
+                  {/* Loose Kg Products Rows */}
                   {kgOptions.map((opt) => {
                     const qty = selected[opt.id] || 0
                     const isChecked = qty > 0
@@ -1212,13 +1090,6 @@ function OrderMemoSection({
 
                 {/* Recalculation Summary */}
                 <div className="memo-summary-table">
-                  {comboQty > 0 && (
-                    <div className="memo-summary-row">
-                      <span>{comboOption.label} ({toBn(comboQty)} প্যাক)</span>
-                      <span>৳{taka(comboSubtotal)}</span>
-                    </div>
-                  )}
-
                   {looseEntries.map(({ opt, qty }) => (
                     <div className="memo-summary-row" key={opt.id}>
                       <span>{opt.label} ({toBn(qty)} কেজি)</span>
@@ -1560,8 +1431,8 @@ function VideoModal({ isOpen, onClose }) {
    ========================================================================== */
 function Storefront({ onOpenAdmin, onOrderSuccess }) {
   const { siteSettings } = useCms() || {}
-  const [selected, setSelected] = useState({ 'gur-combo-990': 1 })
-  const [activePreviewId, setActivePreviewId] = useState('gur-combo-990')
+  const [selected, setSelected] = useState({ 'gur-gol-khuri': 1 })
+  const [activePreviewId, setActivePreviewId] = useState('gur-gol-khuri')
   const [stickyVisible, setStickyVisible] = useState(false)
   const [videoModalOpen, setVideoModalOpen] = useState(false)
   const lastCheckoutSigRef = useRef('')
@@ -1581,10 +1452,8 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
   }, [])
 
   const fireBeginCheckout = (cartMap = selected) => {
-    const comboOption = orderOptions.find((o) => o.isCombo)
     const kgOptions = orderOptions.filter((o) => !o.isCombo)
 
-    const comboQty = Math.min(comboOption.max, Math.max(0, Math.floor(Number(cartMap[comboOption.id] || 0))))
     const looseEntries = kgOptions
       .map((opt) => ({
         opt,
@@ -1594,16 +1463,6 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
 
     const looseKg = looseEntries.reduce((sum, entry) => sum + entry.qty, 0)
     const items = []
-
-    if (comboQty > 0) {
-      items.push({
-        id: comboOption.id,
-        name: comboOption.label,
-        price: comboOption.price,
-        quantity: comboQty,
-        unit: comboOption.unit
-      })
-    }
 
     looseEntries.forEach(({ opt, qty }) => {
       items.push({
@@ -1625,13 +1484,11 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
       })
     }
 
-    const subtotal =
-      comboQty * comboOption.price +
-      looseEntries.reduce((sum, entry) => sum + entry.opt.price * entry.qty, 0)
-    const hasItems = comboQty > 0 || looseKg > 0
-    const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
+    const subtotal = looseEntries.reduce((sum, entry) => sum + entry.opt.price * entry.qty, 0)
+    const hasItems = looseKg > 0
+    const delivery = !hasItems ? 0 : DELIVERY_CHARGE
     const grandTotal = subtotal + delivery
-    const totalItems = comboQty + looseKg
+    const totalItems = looseKg
     const sig = `${items.map((it) => `${it.id}:${it.quantity}`).join('|')}@${grandTotal}`
 
     if (totalItems <= 0 || !items.length) return
@@ -1775,17 +1632,13 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
     }
   }
 
-  const comboOption = orderOptions.find((o) => o.isCombo)
   const kgOptions = orderOptions.filter((o) => !o.isCombo)
-  const comboQty = selected[comboOption.id] || 0
   const looseKg = kgOptions.reduce((sum, o) => sum + (selected[o.id] || 0), 0)
-  const subtotal =
-    comboQty * comboOption.price +
-    kgOptions.reduce((sum, o) => sum + o.price * (selected[o.id] || 0), 0)
-  const hasItems = comboQty > 0 || looseKg > 0
-  const delivery = !hasItems ? 0 : comboQty > 0 ? 0 : DELIVERY_CHARGE
+  const subtotal = kgOptions.reduce((sum, o) => sum + o.price * (selected[o.id] || 0), 0)
+  const hasItems = looseKg > 0
+  const delivery = !hasItems ? 0 : DELIVERY_CHARGE
   const grandTotal = subtotal + delivery
-  const totalItems = comboQty + looseKg
+  const totalItems = looseKg
 
   return (
     <>
@@ -1833,8 +1686,8 @@ function Storefront({ onOpenAdmin, onOrderSuccess }) {
           onUpdateQty={updateQty}
           onResetCart={() => {
             lastCheckoutSigRef.current = ''
-            setSelected({ 'gur-combo-990': 1 })
-            setActivePreviewId('gur-combo-990')
+            setSelected({ 'gur-gol-khuri': 1 })
+            setActivePreviewId('gur-gol-khuri')
           }}
           onBeginCheckout={() => fireBeginCheckout(selected)}
           onOrderSuccess={onOrderSuccess}

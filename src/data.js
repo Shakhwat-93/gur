@@ -19,59 +19,7 @@ export const BRAND_IMAGES = {
   craftVideoPoster: '/img/lv_0_poster.jpg',
 }
 
-export const combos = [
-  {
-    id: 'gur-combo-990',
-    title: '৫ ধরনের খাঁটি খেজুরের গুড়ের বিশেষ প্যাকেজ',
-    shortTitle: '৫ ধরনের গুড়ের বিশেষ প্যাকেজ (২.৫ কেজি)',
-    price: 990,
-    totalWeight: '২.৫ কেজি',
-    freeDelivery: true,
-    featured: true,
-    badge: 'বেস্ট সেলার · ফ্রি ডেলিভারি',
-    items: [
-      'হাফ কেজি গোল পাটালি গুড়',
-      'হাফ কেজি ফয়েল পাটালি গুড়',
-      'হাফ কেজি ঝোলা গুড়',
-      'হাফ কেজি দানাদার গুড়',
-      'হাফ কেজি চকলেট গুড়',
-    ],
-    itemDetails: [
-      {
-        name: 'হাফ কেজি গোল পাটালি গুড়',
-        weight: '৫০০ গ্রাম',
-        note: 'ঐতিহ্যবাহী মাটির খুরিতে জমানো মচমচে অথচ মুখে গলে যাওয়া খাঁটি গোল পাটালি।',
-        pairing: 'ভাপা পিঠা ও দুধ-চিড়ার সাথে সেরা',
-      },
-      {
-        name: 'হাফ কেজি ফয়েল পাটালি গুড়',
-        weight: '৫০০ গ্রাম',
-        note: 'নরম, মাখনের মতো মসৃণ ও বাতাস-নিরোধক ফয়েল প্যাকিংয়ে সতেজ গুড়।',
-        pairing: 'পিঠা তৈরি ও সরাসরি খাওয়ার জন্য আদর্শ',
-      },
-      {
-        name: 'হাফ কেজি ঝোলা গুড়',
-        weight: '৫০০ গ্রাম',
-        note: 'প্রথম ধাপের ঘন নলেন রস থেকে তৈরি অসাধারণ ঘ্রাণের সোনালি ঝোলা গুড়।',
-        pairing: 'রুটি, পরোটা ও চিতই পিঠার সঙ্গী',
-      },
-      {
-        name: 'হাফ কেজি দানাদার গুড়',
-        weight: '৫০০ গ্রাম',
-        note: 'মুখে দিলে ঝুরঝুরে মিষ্টি দানা অনুভূত হয় এমন প্রাকৃতিক রসালো দানাদার গুড়।',
-        pairing: 'পায়েস, ক্ষীর ও সকালের নাস্তায় অনন্য',
-      },
-      {
-        name: 'হাফ কেজি চকলেট গুড়',
-        weight: '৫০০ গ্রাম',
-        note: 'দীর্ঘক্ষণ মৃদু আঁচে তৈরি গাঢ় ক্যারামেল চকলেট রঙ ও রিচ স্বাদের স্পেশাল গুড়।',
-        pairing: 'ছোট-বড় সবার প্রিয় ও উপহারের জন্য দারুণ',
-      },
-    ],
-    image: '/img/file_000000008a508211871f2da956f12e9c.png',
-    pos: 'center center',
-  },
-]
+export const combos = []
 
 export const gurPrices = [
   {
@@ -242,13 +190,6 @@ export const customerReviews = [
 ]
 
 export const products = [
-  ...combos.map((c) => ({
-    id: c.id,
-    name: c.shortTitle,
-    price: c.price,
-    unit: 'প্যাকেজ',
-    image: c.image,
-  })),
   ...gurPrices.map((g) => ({
     id: g.id,
     name: g.name,
@@ -259,18 +200,6 @@ export const products = [
 ]
 
 export const orderOptions = [
-  ...combos.map((c) => ({
-    id: c.id,
-    label: c.shortTitle,
-    sub: 'ফ্রি হোম ডেলিভারি · সর্বমোট ২.৫ কেজি',
-    price: c.price,
-    freeDelivery: true,
-    min: 1,
-    max: MAX_COMBO_PACKS,
-    unit: 'প্যাকেজ',
-    image: c.image,
-    isCombo: true,
-  })),
   ...gurPrices.map((g) => ({
     id: g.id,
     label: g.name,
