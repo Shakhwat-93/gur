@@ -325,13 +325,14 @@ function sanitizeCourierData(raw, canonicalPhone) {
       total_parcel: Number(summary.total_parcel || 0),
       success_parcel: Number(summary.success_parcel || 0),
       cancelled_parcel: Number(summary.cancelled_parcel || 0),
-      success_ratio: Number(summary.success_ratio || 0)
+      success_ratio: Number(summary.success_ratio || 0),
+      calculation_note: summary.calculation_note || null
     };
   }
 
-  // 2. Individual Couriers
+  // 2. Individual Couriers (preserve rate_only, parcel_range, volume_band)
   const couriers = {};
-  const standardCouriers = ['pathao', 'steadfast', 'redx', 'parceldex', 'courrierfast', 'paperfly', 'carrybee'];
+  const standardCouriers = ['pathao', 'steadfast', 'courrierfast', 'redx', 'paperfly', 'carrybee', 'parceldex'];
   standardCouriers.forEach((c) => {
     if (rawData[c] && typeof rawData[c] === 'object') {
       const item = rawData[c];
@@ -341,28 +342,57 @@ function sanitizeCourierData(raw, canonicalPhone) {
         total_parcel: Number(item.total_parcel || 0),
         success_parcel: Number(item.success_parcel || 0),
         cancelled_parcel: Number(item.cancelled_parcel || 0),
-        success_ratio: Number(item.success_ratio || 0)
+        success_ratio: Number(item.success_ratio || 0),
+        rate_only: Boolean(item.rate_only),
+        rate_from_api: Boolean(item.rate_from_api),
+        parcel_range: item.parcel_range || null,
+        volume_band: item.volume_band || null,
+        counts_cached: Boolean(item.counts_cached),
+        counts_cached_at: item.counts_cached_at || null,
+        notice: item.notice || null
       };
     }
   });
 
-  // 3. Reports
-  const reports = Array.isArray(raw.reports) ? raw.reports.slice(0, 5) : [];
+  // 3. Reports & Risk Verdict
+  const reports = Array.isArray(raw.reports)
+    ? raw.reports
+    : Array.isArray(rawData.reports)
+    ? rawData.reports
+    : [];
+  const riskVerdict = raw.risk_verdict || rawData.risk_verdict || null;
+
+  const hasAnyParcelOrRate =
+    summary.total_parcel > 0 ||
+    Object.values(couriers).some((c) => c.total_parcel > 0 || (c.rate_only && c.success_ratio > 0));
 
   return {
     phone: canonicalPhone,
     summary,
     couriers,
     reports,
-    risk_level: raw.risk_level || (summary.total_parcel === 0 ? 'new_customer' : summary.success_ratio >= 80 ? 'safe' : summary.success_ratio >= 60 ? 'medium' : 'high_risk'),
+    total_reports: reports.length,
+    steadfast_volume: couriers.steadfast?.parcel_range || null,
+    risk_verdict: riskVerdict,
+    schema_version: 2,
+    risk_level:
+      riskVerdict?.level ||
+      raw.risk_level ||
+      (!hasAnyParcelOrRate
+        ? 'new_customer'
+        : summary.success_ratio >= 80
+        ? 'safe'
+        : summary.success_ratio >= 60
+        ? 'medium'
+        : 'high_risk'),
     retrieved_at: new Date().toISOString()
   };
 }
 
 /**
- * Execute or retrieve courier check with strict AT-MOST-ONCE guarantee per phone number
+ * Execute or retrieve courier check with live refresh support
  */
-export async function performCourierCheck({ phone, orderId = null }) {
+export async function performCourierCheck({ phone, orderId = null, forceRefresh = false }) {
   const canonicalPhone = normalizeBdPhone(phone);
 
   if (!isValidBdPhone(canonicalPhone)) {
@@ -384,47 +414,32 @@ export async function performCourierCheck({ phone, orderId = null }) {
     console.error('[BDCourierService] Supabase fetch error:', fetchErr.message);
   }
 
-  if (existingRecord) {
-    // Link to order if orderId provided and not linked yet
+  // Check if existing cache record is fresh and uses current schema_version === 2
+  const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes live cache TTL
+  const retrievedTime = existingRecord?.data?.retrieved_at
+    ? new Date(existingRecord.data.retrieved_at).getTime()
+    : existingRecord?.completed_at
+    ? new Date(existingRecord.completed_at).getTime()
+    : 0;
+  const isCacheFresh =
+    !forceRefresh &&
+    existingRecord?.status === 'completed' &&
+    existingRecord?.data?.schema_version === 2 &&
+    retrievedTime > 0 &&
+    Date.now() - retrievedTime < CACHE_TTL_MS;
+
+  if (existingRecord && isCacheFresh) {
     if (orderId && existingRecord.id) {
       await linkOrderToCourierCheck(orderId, existingRecord.id);
     }
-
-    if (existingRecord.status === 'completed') {
-      return {
-        success: true,
-        source: 'cache',
-        status: 'completed',
-        data: existingRecord.data,
-        record_id: existingRecord.id,
-        phone: canonicalPhone
-      };
-    }
-
-    if (existingRecord.status === 'failed' || existingRecord.status === 'unknown') {
-      const fallback = await tryEShipFirstFraudFallback(canonicalPhone, existingRecord.id);
-      if (fallback) return fallback;
-
-      return {
-        success: false,
-        source: 'cache',
-        status: existingRecord.status,
-        error: existingRecord.error || 'Previous lookup attempt failed or was inconclusive',
-        record_id: existingRecord.id,
-        phone: canonicalPhone
-      };
-    }
-
-    if (existingRecord.status === 'pending') {
-      return {
-        success: false,
-        source: 'cache',
-        status: 'pending',
-        message: 'Lookup is currently in progress',
-        record_id: existingRecord.id,
-        phone: canonicalPhone
-      };
-    }
+    return {
+      success: true,
+      source: 'cache',
+      status: 'completed',
+      data: existingRecord.data,
+      record_id: existingRecord.id,
+      phone: canonicalPhone
+    };
   }
 
   // STEP 2: Verify if integration is enabled
@@ -441,51 +456,23 @@ export async function performCourierCheck({ phone, orderId = null }) {
     };
   }
 
-  // STEP 3: Atomic reservation / claim via Postgres RPC
-  const { data: claimResult, error: rpcErr } = await supabaseAdmin.rpc('claim_courier_check', {
-    p_phone: canonicalPhone
-  });
-
-  if (rpcErr) {
-    console.error('[BDCourierService] RPC claim error:', rpcErr.message);
-    return {
-      success: false,
-      status: 'error',
-      error: `Atomic claim error: ${rpcErr.message}`
-    };
-  }
-
-  // If another concurrent request already claimed it, reuse its state
-  if (!claimResult?.claimed) {
-    const record = claimResult?.record;
-    if (orderId && record?.id) {
-      await linkOrderToCourierCheck(orderId, record.id);
+  // STEP 3: Obtain or create record ID in bdcourier_checks
+  let recordId = existingRecord?.id || null;
+  if (!recordId) {
+    const { data: claimResult, error: rpcErr } = await supabaseAdmin.rpc('claim_courier_check', {
+      p_phone: canonicalPhone
+    });
+    if (!rpcErr && claimResult?.record?.id) {
+      recordId = claimResult.record.id;
+    } else {
+      const { data: inserted } = await supabaseAdmin
+        .from('bdcourier_checks')
+        .upsert({ phone: canonicalPhone, status: 'pending', updated_at: new Date().toISOString() }, { onConflict: 'phone' })
+        .select('id')
+        .maybeSingle();
+      recordId = inserted?.id || null;
     }
-
-    if (record?.status === 'completed') {
-      return {
-        success: true,
-        source: 'cache',
-        status: 'completed',
-        data: record.data,
-        record_id: record.id,
-        phone: canonicalPhone
-      };
-    }
-
-    return {
-      success: false,
-      source: 'cache',
-      status: record?.status || 'pending',
-      error: record?.error || 'Concurrent lookup in progress or completed',
-      record_id: record?.id,
-      phone: canonicalPhone
-    };
   }
-
-  // STEP 4: WE HAVE THE EXCLUSIVE CLAIM.
-  // Execute the SINGLE permitted external API call.
-  const recordId = claimResult.record.id;
 
   if (orderId) {
     await linkOrderToCourierCheck(orderId, recordId);

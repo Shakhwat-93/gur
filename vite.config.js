@@ -55,7 +55,15 @@ function localApiMiddleware() {
 
           // Dynamically import handler (cache-busted by mtime for smooth local dev)
           const stat = fs.statSync(filePath)
-          const mod = await import(`${pathToFileURL(filePath).href}?t=${stat.mtimeMs}`)
+          const libDir = path.resolve(process.cwd(), 'api', '_lib')
+          let maxMtime = stat.mtimeMs
+          if (fs.existsSync(libDir)) {
+            for (const f of fs.readdirSync(libDir)) {
+              const m = fs.statSync(path.join(libDir, f)).mtimeMs
+              if (m > maxMtime) maxMtime = m
+            }
+          }
+          const mod = await import(`${pathToFileURL(filePath).href}?t=${maxMtime}`)
           if (typeof mod.default === 'function') {
             await mod.default(req, res)
             return

@@ -1,6 +1,6 @@
 // ম্যাংগো গার্ডেন — খাঁটি খেজুরের গুড়ের মূল্য তালিকা, কম্বো ডিটেইলস ও বাস্তব রিভিউ
 export const DELIVERY_CHARGE = 100
-export const DELIVERY_START_NOTICE = '১৫ নভেম্বর থেকে ডেলিভারি শুরু, ইনশাআল্লাহ'
+export const DELIVERY_START_NOTICE = 'সারা বাংলাদেশে ক্যাশ অন ডেলিভারি'
 export const FREE_BONUS_MIN_KG = 3
 export const FREE_BONUS_ITEM_NAME = '৫০০ গ্রাম ঝোলা গুড় (ফ্রি অফার)'
 export const MAX_LOOSE_KG_PER_ITEM = 5
@@ -163,8 +163,8 @@ export const craftSteps = [
   },
   {
     step: '০৪',
-    title: '১৫ নভেম্বর ডেলিভারি',
-    desc: '১৫ নভেম্বর থেকে সিরিয়াল অনুযায়ী সারা বাংলাদেশে ক্যাশ অন ডেলিভারি শুরু, ইনশাআল্লাহ।',
+    title: 'সারা দেশে হোম ডেলিভারি',
+    desc: 'সারা বাংলাদেশে দ্রুততম সময়ে ক্যাশ অন ডেলিভারি সুবিধা।',
   },
 ]
 

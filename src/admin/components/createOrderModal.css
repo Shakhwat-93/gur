@@ -965,3 +965,81 @@
     transform: rotate(360deg);
   }
 }
+
+/* Compact Courier Breakdown Table inside CreateOrderModal */
+.com-breakdown-table-wrap {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.com-breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.com-breakdown-table thead th {
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 5px 8px;
+  text-align: left;
+  letter-spacing: 0.4px;
+}
+
+.com-breakdown-table th.num,
+.com-breakdown-table td.num {
+  text-align: center;
+  font-family: monospace;
+  font-weight: 700;
+}
+
+.com-breakdown-table tbody td {
+  padding: 4.5px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+}
+
+.com-breakdown-table tbody tr.zero-row td {
+  color: #94a3b8;
+}
+
+.com-breakdown-table td.c-col-name {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.com-breakdown-table td.succ {
+  color: #059669;
+}
+
+.com-breakdown-table td.fraud {
+  color: #e11d48;
+}
+
+.com-breakdown-table td.rate {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.com-breakdown-table tfoot td {
+  background: #f8fafc;
+  border-top: 1.5px solid #cbd5e1;
+  padding: 5px 8px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.com-vol-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  background: #dcfce7;
+  color: #166534;
+  padding: 1px 5px;
+  border-radius: 4px;
+}

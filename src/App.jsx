@@ -83,7 +83,7 @@ function HeritageHeader({ totalItems, grandTotal, onOpenCheckout, siteSettings }
   return (
     <>
       <div className="top-notice-strip">
-        📦 {DELIVERY_START_NOTICE} · সারা বাংলাদেশে ক্যাশ অন ডেলিভারি
+        📦 সারা বাংলাদেশে ক্যাশ অন ডেলিভারি · ৯৯০৳ কম্বোতে ফ্রি হোম ডেলিভারি
       </div>
       <header className="heritage-header">
         <div className="container heritage-header-inner">
@@ -266,7 +266,7 @@ function HeroSection({ onPickAndOrder }) {
           <div className="hero-bottom-bar">
             <div className="hero-bar-info">
               <strong>ক্যাশ অন ডেলিভারি</strong>
-              <small>৯৯০৳ কম্বোতে ফ্রি ডেলিভারি · {DELIVERY_START_NOTICE}</small>
+              <small>৯৯০৳ কম্বোতে ফ্রি ডেলিভারি · সারা বাংলাদেশে হোম ডেলিভারি</small>
             </div>
             <button
               type="button"
@@ -634,7 +634,7 @@ function DeliveryPromiseSection() {
             <span className="bubble-pill-top">১-৩ দিনে ডেলিভারি</span>
             <h3 className="bubble-heading">আপনার দরজায়</h3>
             <p className="bubble-desc">
-              সারা বাংলাদেশে দ্রুততম সময়ে ক্যাশ অন ডেলিভারি · {DELIVERY_START_NOTICE} · পার্সেল খুলে যাচাই করে তারপর টাকা পরিশোধ করুন।
+              সারা বাংলাদেশে দ্রুততম সময়ে ক্যাশ অন ডেলিভারি · পার্সেল খুলে যাচাই করে তারপর টাকা পরিশোধ করুন।
             </p>
           </div>
 
@@ -933,7 +933,7 @@ function OrderMemoSection({
         <div className="sec-header">
           <h2 className="sec-title">অর্ডার করুন</h2>
           <p className="sec-subtitle">
-            ক্যাশ অন ডেলিভারি · {DELIVERY_START_NOTICE} · পণ্য হাতে পেয়ে টাকা পরিশোধ
+            ক্যাশ অন ডেলিভারি · পণ্য হাতে পেয়ে টাকা পরিশোধ
           </p>
         </div>
 
@@ -1383,7 +1383,7 @@ function HeritageFooter({ onOpenAdmin, siteSettings }) {
         <div className="footer-slogan-wrap">
           <h3 className="footer-slogan">গ্রীষ্মে আম, শীতে গুড়।</h3>
           <p className="footer-slogan-sub">
-            ১০০% খাঁটি খেজুরের গুড় · {DELIVERY_START_NOTICE}
+            ১০০% খাঁটি খেজুরের গুড় · সারা বাংলাদেশে হোম ডেলিভারি
           </p>
         </div>
 

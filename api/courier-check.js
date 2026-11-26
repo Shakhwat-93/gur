@@ -42,9 +42,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST: Execute lookup with strict atomic deduplication and permanent cache
+  // POST: Execute lookup with live refresh support
   if (req.method === 'POST') {
-    const { phone, orderId } = req.body || {};
+    const { phone, orderId, forceRefresh = false } = req.body || {};
 
     if (!phone) {
       return res.status(400).json({ error: 'Missing phone number' });
@@ -58,7 +58,11 @@ export default async function handler(req, res) {
     }
 
     try {
-      const result = await performCourierCheck({ phone: normalizedPhone, orderId });
+      const result = await performCourierCheck({
+        phone: normalizedPhone,
+        orderId,
+        forceRefresh: Boolean(forceRefresh)
+      });
       return res.status(200).json(result);
     } catch (err) {
       console.error('[API courier-check POST] Exception:', err.message);

@@ -6,7 +6,7 @@ const CmsContext = createContext(null);
 
 export const DEFAULT_SITE_SETTINGS = {
   store_name: 'ম্যাংগো গার্ডেন',
-  tagline: 'খাঁটি খেজুরের গুড় · ১৫ নভেম্বর থেকে ডেলিভারি শুরু',
+  tagline: 'খাঁটি খেজুরের গুড় · সারা বাংলাদেশে হোম ডেলিভারি',
   logo_url: '/img/file_00000000bb8c8208935485c59b7b5c83.png',
   favicon_url: '/img/file_00000000bb8c8208935485c59b7b5c83.png',
   phone_1: '01318-007554',
@@ -15,7 +15,7 @@ export const DEFAULT_SITE_SETTINGS = {
   facebook_page: 'https://www.facebook.com/mangogardenbd1',
   email: 'info@mangogardenbd.com',
   address: 'ঢাকা ও সারা বাংলাদেশ',
-  announcement_text: '🌴 ৫ ধরনের খাঁটি খেজুরের গুড় মাত্র ৯৯০৳ (ফ্রি ডেলিভারি) · ১৫ নভেম্বর থেকে ডেলিভারি শুরু, ইনশাআল্লাহ!',
+  announcement_text: '🌴 ৫ ধরনের খাঁটি খেজুরের গুড় মাত্র ৯৯০৳ (ফ্রি ডেলিভারি) · সারা বাংলাদেশে ক্যাশ অন ডেলিভারি!',
   announcement_enabled: true,
   currency_symbol: '৳',
   free_shipping_text: 'কম্বো অফারে সারা দেশে ফ্রি ডেলিভারি',

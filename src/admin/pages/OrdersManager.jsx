@@ -245,7 +245,7 @@ export default function OrdersManager({ focusOrderId = null, onClearFocusOrder =
   };
 
   // Trigger manual courier check for an order
-  const handleTriggerCourierCheck = async (ord) => {
+  const handleTriggerCourierCheck = async (ord, forceRefresh = true) => {
     if (!ord?.phone) return;
     const phone = ord.phone;
     setCheckingPhone(phone);
@@ -255,7 +255,8 @@ export default function OrdersManager({ focusOrderId = null, onClearFocusOrder =
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: ord.phone,
-          orderId: ord.order_id
+          orderId: ord.order_id,
+          forceRefresh
         })
       });
       const data = await res.json();

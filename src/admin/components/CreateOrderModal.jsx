@@ -150,7 +150,7 @@ export default function CreateOrderModal({
   };
 
   // Trigger Courier Ratio & Fraud Rate Lookup for a valid 11-digit BD phone number
-  const runCourierRatioCheck = async (normPhone) => {
+  const runCourierRatioCheck = async (normPhone, forceRefresh = false) => {
     if (!isValidBdPhone(normPhone)) return;
     latestLookupPhoneRef.current = normPhone;
 
@@ -166,7 +166,7 @@ export default function CreateOrderModal({
       const res = await fetch('/api/courier-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normPhone })
+        body: JSON.stringify({ phone: normPhone, forceRefresh })
       });
       const json = await res.json().catch(() => ({}));
 
@@ -179,7 +179,7 @@ export default function CreateOrderModal({
           data: json.data,
           error: null,
           phone: normPhone,
-          source: 'BD Courier'
+          source: json.data.provider || 'BD Courier'
         });
         return;
       }
@@ -609,41 +609,92 @@ export default function CreateOrderModal({
     }
 
     if (courierCheckState.status === 'completed' && courierCheckState.data) {
-      const summary = courierCheckState.data.summary || {};
+      const d = courierCheckState.data;
+      const summary = d.summary || {};
+      const rawCouriers = d.couriers || {};
+
       const total = Number(summary.total_parcel || 0);
       const success = Number(summary.success_parcel || 0);
       const cancelled = Number(summary.cancelled_parcel || Math.max(0, total - success));
-      const successRate =
-        total > 0
-          ? Math.round(Number(summary.success_ratio ?? (success / total) * 100))
+
+      const hasAnyRateOnlyCourier = Object.values(rawCouriers).some(
+        (c) => c && (c.total_parcel > 0 || (c.rate_only && Number(c.success_ratio) > 0))
+      );
+      const hasHistory = total > 0 || hasAnyRateOnlyCourier;
+
+      const rawSuccessRatio =
+        summary.success_ratio !== undefined && summary.success_ratio !== null
+          ? Number(summary.success_ratio)
+          : total > 0
+          ? (success / total) * 100
           : 0;
-      const fraudRate = total > 0 ? Math.max(0, 100 - successRate) : 0;
+      const successRate = hasHistory ? Number(rawSuccessRatio.toFixed(1).replace(/\.0$/, '')) : 0;
+      const fraudRate = hasHistory ? Number(Math.max(0, 100 - rawSuccessRatio).toFixed(1).replace(/\.0$/, '')) : 0;
 
       let riskTone = 'new';
-      let riskLabel = '🆕 New Customer (নতুন গ্রাহক)';
-      if (total > 0) {
+      let riskLabel = '🆕 NEW CUSTOMER (0 PARCELS)';
+      if (hasHistory) {
         if (successRate >= 80) {
           riskTone = 'safe';
-          riskLabel = `✓ Safe (${successRate}% Success)`;
+          riskLabel = `✓ SAFE (${successRate}% DELIVERED)`;
         } else if (successRate >= 60) {
           riskTone = 'medium';
-          riskLabel = `⚠ Medium Risk (${fraudRate}% Fraud/Cancel)`;
+          riskLabel = `⚠ MEDIUM RISK (${fraudRate}% CANCELLED)`;
         } else {
           riskTone = 'high';
-          riskLabel = `🚨 High Fraud Risk (${fraudRate}% Fraud/Cancel)`;
+          riskLabel = `🚨 HIGH FRAUD RISK (${fraudRate}% CANCELLED)`;
         }
       }
 
-      const rawCouriers = courierCheckState.data.couriers || {};
-      const courierEntries = Object.keys(rawCouriers)
-        .map((k) => ({
-          key: k,
-          name: rawCouriers[k]?.name || k.toUpperCase(),
-          total: Number(rawCouriers[k]?.total_parcel || 0),
-          success: Number(rawCouriers[k]?.success_parcel || 0),
-          cancelled: Number(rawCouriers[k]?.cancelled_parcel || 0)
-        }))
-        .filter((c) => c.total > 0);
+      // Standard 6 couriers matching the BD Courier Breakdown table
+      const COURIER_ORDER = [
+        { key: 'pathao', label: 'Pathao' },
+        { key: 'steadfast', label: 'SteadFast' },
+        { key: 'courrierfast', label: 'Courrier Fast' },
+        { key: 'redx', label: 'RedX' },
+        { key: 'paperfly', label: 'Paperfly' },
+        { key: 'carrybee', label: 'CarryBee' }
+      ];
+
+      const breakdownRows = COURIER_ORDER.map((item) => {
+        const info = rawCouriers[item.key] || {};
+        const cTotal = Number(info.total_parcel || 0);
+        const cSucc = Number(info.success_parcel || 0);
+        const cCanc = Number(info.cancelled_parcel || 0);
+        const isRateOnly = Boolean(info.rate_only) && cTotal === 0;
+        const cRatio =
+          info.success_ratio !== undefined && info.success_ratio !== null
+            ? Number(Number(info.success_ratio).toFixed(1).replace(/\.0$/, ''))
+            : cTotal > 0
+            ? Number(((cSucc / cTotal) * 100).toFixed(1).replace(/\.0$/, ''))
+            : 0;
+        const hasRate = cTotal > 0 || (isRateOnly && cRatio > 0);
+
+        return {
+          key: item.key,
+          name: info.name || item.label,
+          total: cTotal,
+          success: cSucc,
+          cancelled: cCanc,
+          rateOnly: isRateOnly,
+          parcelRange: info.parcel_range || null,
+          rateText: hasRate ? `${cRatio}%` : '—'
+        };
+      });
+
+      const hasCourierBreakdown = Object.keys(rawCouriers).length > 0;
+      const steadfastVol =
+        d.steadfast_volume ||
+        rawCouriers?.steadfast?.parcel_range ||
+        d.volume_range ||
+        (Number(rawCouriers?.steadfast?.total_parcel || 0) >= 10
+          ? '10+'
+          : Number(rawCouriers?.steadfast?.total_parcel || 0) > 0
+          ? String(rawCouriers.steadfast.total_parcel)
+          : '0');
+      const totalReportsCount = Number(
+        d.total_reports ?? (Array.isArray(d.reports) ? d.reports.length : 0)
+      );
 
       return (
         <div className={`com-courier-ratio-card ${riskTone}`}>
@@ -657,96 +708,131 @@ export default function CreateOrderModal({
               <button
                 type="button"
                 className="com-ratio-refresh-btn"
-                onClick={() => runCourierRatioCheck(normPhone)}
-                title="Re-check courier ratio"
+                onClick={() => runCourierRatioCheck(normPhone, true)}
+                title="Live re-check from BD Courier API"
               >
                 <RotateCw size={11} />
               </button>
             </div>
           </div>
 
-          {/* Visual Dual-Segment Progress Bar: Success Rate vs Fraud/Cancel Rate */}
+          {/* Visual Dual-Segment Progress Bar: Delivered % vs Cancelled % */}
           <div className="com-ratio-progress-wrap">
             <div className="com-ratio-progress-labels">
               <span className="com-ratio-succ-text">
-                ✓ Success Rate: {total > 0 ? `${successRate}%` : 'N/A (0)'}
+                ✓ {hasHistory ? `${successRate}% Delivered` : '0% Delivered'}
               </span>
               <span className="com-ratio-fraud-text">
-                ✕ Fraud / Cancel Rate: {total > 0 ? `${fraudRate}%` : '0%'}
+                ✕ {hasHistory ? `${fraudRate}% Cancelled` : '0% Cancelled'}
               </span>
             </div>
             <div className="com-ratio-progress-track">
               <div
                 className="com-ratio-fill-success"
-                style={{ width: `${total > 0 ? successRate : 0}%` }}
+                style={{ width: `${hasHistory ? successRate : 0}%` }}
               />
               <div
                 className="com-ratio-fill-fraud"
-                style={{ width: `${total > 0 ? fraudRate : 0}%` }}
+                style={{ width: `${hasHistory ? fraudRate : 0}%` }}
               />
             </div>
           </div>
 
-          {/* 3-Column Parcel Summary */}
+          {/* 3-Column Parcel Summary + SteadFast Volume & Fraud Reports */}
           <div className="com-ratio-metrics-grid">
             <div className="com-ratio-metric-box">
-              <span className="com-ratio-metric-lbl">Total Parcels</span>
+              <span className="com-ratio-metric-lbl">Total Orders</span>
               <span className="com-ratio-metric-val">{total}</span>
             </div>
             <div className="com-ratio-metric-box">
-              <span className="com-ratio-metric-lbl">Delivered (Success)</span>
-              <span className="com-ratio-metric-val succ">
-                {success} ({total > 0 ? `${successRate}%` : '0%'})
-              </span>
+              <span className="com-ratio-metric-lbl">Delivered</span>
+              <span className="com-ratio-metric-val succ">{success}</span>
             </div>
             <div className="com-ratio-metric-box">
-              <span className="com-ratio-metric-lbl">Cancelled (Fraud)</span>
-              <span className="com-ratio-metric-val fraud">
-                {cancelled} ({total > 0 ? `${fraudRate}%` : '0%'})
-              </span>
+              <span className="com-ratio-metric-lbl">Cancelled</span>
+              <span className="com-ratio-metric-val fraud">{cancelled}</span>
             </div>
           </div>
 
-          {/* Per-Courier Breakdown Pills */}
-          {courierEntries.length > 0 && (
-            <div className="com-courier-chip-list">
-              {courierEntries.map((c) => (
-                <span key={c.key} className="com-courier-chip has-parcels">
-                  <span className="c-name">{c.name}:</span>
-                  <span className="c-score">
-                    {c.success}/{c.total}
-                  </span>
-                </span>
-              ))}
+          {/* SteadFast Parcel Volume & Fraud Reports Pills (matching BD Courier Dashboard) */}
+          <div className="com-courier-chip-list">
+            <span className="com-courier-chip has-parcels">
+              <span className="c-name">📦 SteadFast Volume:</span>
+              <span className="c-score" style={{ color: '#059669' }}>{steadfastVol}</span>
+            </span>
+            <span
+              className="com-courier-chip"
+              style={
+                totalReportsCount > 0
+                  ? { background: '#ffe4e6', borderColor: '#fda4af', color: '#be123c' }
+                  : {}
+              }
+            >
+              <span className="c-name">🛡 Fraud Reports:</span>
+              <span
+                className="c-score"
+                style={{ color: totalReportsCount > 0 ? '#e11d48' : '#0f172a' }}
+              >
+                {totalReportsCount}
+              </span>
+            </span>
+          </div>
+
+          {/* Full Courier Breakdown Table (matching BD Courier screenshot) */}
+          {hasCourierBreakdown && (
+            <div className="com-breakdown-table-wrap">
+              <table className="com-breakdown-table">
+                <thead>
+                  <tr>
+                    <th>COURIER</th>
+                    <th className="num">TOTAL</th>
+                    <th className="num">SUCCESS</th>
+                    <th className="num">CANCEL</th>
+                    <th className="num">RATE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {breakdownRows.map((row) => (
+                    <tr key={row.key} className={row.total > 0 || row.rateOnly ? 'active-row' : 'zero-row'}>
+                      <td className="c-col-name">
+                        {row.name}
+                        {row.rateOnly && row.parcelRange ? (
+                          <span className="com-vol-tag">Vol {row.parcelRange}</span>
+                        ) : null}
+                      </td>
+                      <td className="num">{row.total}</td>
+                      <td className="num succ">{row.success}</td>
+                      <td className="num fraud">{row.cancelled}</td>
+                      <td className="num rate">{row.rateText}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Total</td>
+                    <td className="num">{total}</td>
+                    <td className="num succ">{success}</td>
+                    <td className="num fraud">{cancelled}</td>
+                    <td className="num rate">{hasHistory ? `${successRate}%` : '—'}</td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           )}
 
-          {/* Fraud Reports & Categories Breakdown (when available from eShipFirst) */}
-          {Number(courierCheckState.data.total_reports || 0) > 0 && (
+          {/* Fraud Reports Categories Breakdown (when available) */}
+          {totalReportsCount > 0 && d.fraud_categories && (
             <div className="com-courier-chip-list">
-              <span
-                className="com-courier-chip"
-                style={{
-                  background: '#ffe4e6',
-                  borderColor: '#fda4af',
-                  color: '#be123c'
-                }}
-              >
-                🚨 Fraud Reports: <b>{courierCheckState.data.total_reports}</b>
-              </span>
-              {courierCheckState.data.fraud_categories &&
-                Object.entries(courierCheckState.data.fraud_categories)
-                  .filter(([, count]) => Number(count) > 0)
-                  .map(([catKey, count]) => (
-                    <span key={catKey} className="com-courier-chip">
-                      <span className="c-name">
-                        {catKey.replace(/_/g, ' ')}:
-                      </span>
-                      <span className="c-score" style={{ color: '#e11d48' }}>
-                        {count}
-                      </span>
+              {Object.entries(d.fraud_categories)
+                .filter(([, count]) => Number(count) > 0)
+                .map(([catKey, count]) => (
+                  <span key={catKey} className="com-courier-chip">
+                    <span className="c-name">{catKey.replace(/_/g, ' ')}:</span>
+                    <span className="c-score" style={{ color: '#e11d48' }}>
+                      {count}
                     </span>
-                  ))}
+                  </span>
+                ))}
             </div>
           )}
 
