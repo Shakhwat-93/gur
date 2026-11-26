@@ -697,3 +697,271 @@
   justify-content: center;
   margin-top: 12px;
 }
+
+/* ==============================================================================
+   INLINE AUTOMATIC COURIER RATIO & FRAUD INTELLIGENCE CARD
+   ============================================================================== */
+
+.com-courier-ratio-card {
+  margin-top: 6px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.com-courier-ratio-card.safe {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.com-courier-ratio-card.medium {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.com-courier-ratio-card.high {
+  background: #fff1f2;
+  border-color: #fda4af;
+}
+
+.com-courier-ratio-card.new {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.com-ratio-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.com-ratio-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.com-ratio-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.com-ratio-risk-badge.safe {
+  background: #059669;
+  color: #ffffff;
+}
+
+.com-ratio-risk-badge.medium {
+  background: #d97706;
+  color: #ffffff;
+}
+
+.com-ratio-risk-badge.high {
+  background: #e11d48;
+  color: #ffffff;
+}
+
+.com-ratio-risk-badge.new {
+  background: #334155;
+  color: #ffffff;
+}
+
+.com-ratio-refresh-btn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.com-ratio-refresh-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Dual-Color Success vs Fraud Progress Bar */
+.com-ratio-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.com-ratio-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.com-ratio-succ-text {
+  color: #059669;
+}
+
+.com-ratio-fraud-text {
+  color: #e11d48;
+}
+
+.com-ratio-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+  display: flex;
+}
+
+.com-ratio-fill-success {
+  height: 100%;
+  background: #10b981;
+  transition: width 0.3s ease;
+}
+
+.com-ratio-fill-fraud {
+  height: 100%;
+  background: #f43f5e;
+  transition: width 0.3s ease;
+}
+
+/* 3-Column KPI Summary Pills */
+.com-ratio-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.com-ratio-metric-box {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 7px;
+  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.com-ratio-metric-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.com-ratio-metric-val {
+  font-size: 13.5px;
+  font-weight: 900;
+  color: #0f172a;
+  font-family: monospace;
+}
+
+.com-ratio-metric-val.succ {
+  color: #059669;
+}
+
+.com-ratio-metric-val.fraud {
+  color: #e11d48;
+}
+
+/* Per-Courier Breakdown Chips */
+.com-courier-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.com-courier-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.com-courier-chip.has-parcels {
+  border-color: #94a3b8;
+  background: #ffffff;
+}
+
+.com-courier-chip .c-name {
+  color: #475569;
+}
+
+.com-courier-chip .c-score {
+  font-family: monospace;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* Repeat Customer Auto-Fill Banner */
+.com-repeat-customer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0369a1;
+}
+
+.com-repeat-fill-btn {
+  border: 1px solid #0284c7;
+  background: #0284c7;
+  color: #ffffff;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.com-repeat-fill-btn:hover {
+  background: #0369a1;
+}
+
+.com-spin {
+  animation: comSpinAnim 0.9s linear infinite;
+}
+
+@keyframes comSpinAnim {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

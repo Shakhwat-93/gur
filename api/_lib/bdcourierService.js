@@ -1,9 +1,82 @@
 import { supabaseAdmin } from './supabaseAdmin.js';
 import { encryptApiKey, decryptApiKey, maskApiKey } from './secretManager.js';
 import { normalizeBdPhone, isValidBdPhone } from '../../src/lib/phoneNormalizer.js';
+import { getFraudCheckScore } from './eshipfirstService.js';
 
 const BDCOURIER_API_URL = 'https://api.bdcourier.com/courier-check';
 const REQUEST_TIMEOUT_MS = 10000;
+
+/**
+ * Fallback helper: converts eShipFirst /fraud_check/score/{phone} response
+ * into the standard courier check data schema when BD Courier quota is exhausted or unavailable.
+ */
+async function tryEShipFirstFraudFallback(canonicalPhone, recordId = null) {
+  try {
+    const eship = await getFraudCheckScore(canonicalPhone);
+    if (!eship?.success || !eship?.data) return null;
+
+    const d = eship.data.data || eship.data;
+    const delivered = Number(d.delivered_count ?? d.success_parcel ?? 0);
+    const cancelled = Number(d.cancelled_count ?? d.cancelled_parcel ?? 0);
+    const total = Number(d.total_parcel ?? delivered + cancelled);
+    const ratio =
+      d.delivery_ratio !== undefined && d.delivery_ratio !== null
+        ? Number(d.delivery_ratio)
+        : total > 0
+        ? Number(((delivered / total) * 100).toFixed(1))
+        : 0;
+
+    const sanitized = {
+      phone: canonicalPhone,
+      summary: {
+        total_parcel: total,
+        success_parcel: delivered,
+        cancelled_parcel: cancelled,
+        success_ratio: ratio
+      },
+      couriers: d.couriers || {},
+      reports: [],
+      total_reports: Number(d.total_reports || 0),
+      fraud_categories: d.fraud_categories || null,
+      volume_range: d.volume_range || null,
+      provider: 'eShipFirst',
+      risk_level:
+        total === 0
+          ? 'new_customer'
+          : ratio >= 80
+          ? 'safe'
+          : ratio >= 60
+          ? 'medium'
+          : 'high_risk',
+      retrieved_at: new Date().toISOString()
+    };
+
+    if (recordId) {
+      await supabaseAdmin
+        .from('bdcourier_checks')
+        .update({
+          status: 'completed',
+          data: sanitized,
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          error: null
+        })
+        .eq('id', recordId);
+    }
+
+    return {
+      success: true,
+      source: 'eshipfirst',
+      status: 'completed',
+      data: sanitized,
+      record_id: recordId,
+      phone: canonicalPhone
+    };
+  } catch (err) {
+    console.warn('[BDCourierService] eShipFirst fallback failed:', err.message);
+    return null;
+  }
+}
 
 /**
  * Retrieve current BD Courier configuration (safe for admin UI, never reveals plaintext secret)
@@ -329,6 +402,9 @@ export async function performCourierCheck({ phone, orderId = null }) {
     }
 
     if (existingRecord.status === 'failed' || existingRecord.status === 'unknown') {
+      const fallback = await tryEShipFirstFraudFallback(canonicalPhone, existingRecord.id);
+      if (fallback) return fallback;
+
       return {
         success: false,
         source: 'cache',
@@ -354,6 +430,9 @@ export async function performCourierCheck({ phone, orderId = null }) {
   // STEP 2: Verify if integration is enabled
   const settings = await getSettings();
   if (!settings.is_enabled) {
+    const fallback = await tryEShipFirstFraudFallback(canonicalPhone, existingRecord?.id || null);
+    if (fallback) return fallback;
+
     return {
       success: false,
       source: 'skipped',
@@ -484,7 +563,10 @@ export async function performCourierCheck({ phone, orderId = null }) {
         phone: canonicalPhone
       };
     } else {
-      // API returned error (e.g. 401, 403, 429)
+      // API returned error (e.g. 401, 403, 429, quota exhausted) — try eShipFirst fallback
+      const fallback = await tryEShipFirstFraudFallback(canonicalPhone, recordId);
+      if (fallback) return fallback;
+
       const errorMsg = jsonBody.message || `BD Courier returned HTTP ${apiRes.status}`;
 
       await supabaseAdmin
@@ -507,6 +589,9 @@ export async function performCourierCheck({ phone, orderId = null }) {
     }
   } catch (err) {
     clearTimeout(timeoutId);
+    const fallback = await tryEShipFirstFraudFallback(canonicalPhone, recordId);
+    if (fallback) return fallback;
+
     const isTimeout = err.name === 'AbortError';
     const errorMsg = isTimeout
       ? 'BD Courier request timed out (10s)'

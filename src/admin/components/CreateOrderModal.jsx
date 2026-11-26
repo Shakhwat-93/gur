@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShoppingBag,
   User,
@@ -11,6 +11,9 @@ import {
   Copy,
   Check,
   RotateCcw,
+  RotateCw,
+  ShieldCheck,
+  AlertTriangle,
   X,
   CreditCard,
   FileText
@@ -19,6 +22,7 @@ import { useCms } from '../../context/CmsContext';
 import { normalizeBdPhone, isValidBdPhone } from '../../lib/phoneNormalizer';
 import { formatOrderCourierText } from '../../lib/orderHelper';
 import { orderOptions, FREE_BONUS_MIN_KG, FREE_BONUS_ITEM_NAME } from '../../data';
+import { fetchEShipFirstFraudScore } from '../lib/eshipfirstClient';
 import './createOrderModal.css';
 
 export default function CreateOrderModal({
@@ -27,17 +31,29 @@ export default function CreateOrderModal({
   onOrderCreated,
   onOpenPrint
 }) {
-  const { createManualOrder, showToast } = useCms();
+  const { orders = [], createManualOrder, showToast } = useCms();
 
-  // Form State
-  const [customerName, setCustomerName] = useState('');
+  // Form State (Phone first, then Name, then Address)
   const [phone, setPhone] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [address, setAddress] = useState('');
   const [area, setArea] = useState('inside_dhaka'); // 'inside_dhaka' | 'outside_dhaka'
   const [orderSource, setOrderSource] = useState('phone'); // 'phone' | 'whatsapp' | 'messenger' | 'offline'
   const [orderStatus, setOrderStatus] = useState('confirmed'); // default to confirmed for manual orders
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [notes, setNotes] = useState('');
+
+  // Live Courier Ratio & Fraud Check State
+  const [courierCheckState, setCourierCheckState] = useState({
+    status: 'idle', // 'idle' | 'loading' | 'completed' | 'error'
+    data: null,
+    error: null,
+    phone: '',
+    source: 'BD Courier'
+  });
+  const [repeatCustomerOrders, setRepeatCustomerOrders] = useState([]);
+  const lastAutoFilledPhoneRef = useRef('');
+  const latestLookupPhoneRef = useRef('');
 
   // Selected Items State: array of { id, name, price, quantity, unit }
   const [selectedItems, setSelectedItems] = useState(() => {
@@ -73,6 +89,209 @@ export default function CreateOrderModal({
   const [createdOrder, setCreatedOrder] = useState(null);
   const [copiedText, setCopiedText] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Normalize eShipFirst fraud payload into a standard courier summary object
+  const normalizeEshipFraudPayload = (raw, normPhone) => {
+    const d = raw?.data || raw || {};
+    const summaryObj = d.summary || d;
+
+    const deliveredCount = Number(
+      summaryObj.success_parcel ??
+        summaryObj.delivered_count ??
+        summaryObj.delivered_parcels ??
+        summaryObj.delivered ??
+        summaryObj.success ??
+        d.delivered_count ??
+        d.success_parcel ??
+        0
+    );
+    const cancelledCount = Number(
+      summaryObj.cancelled_parcel ??
+        summaryObj.cancelled_count ??
+        summaryObj.returned_parcels ??
+        summaryObj.cancelled ??
+        summaryObj.returned ??
+        d.cancelled_count ??
+        d.cancelled_parcel ??
+        0
+    );
+    const rawTotal = Number(
+      summaryObj.total_parcel ??
+        summaryObj.total_parcels ??
+        summaryObj.total ??
+        d.total_parcel ??
+        d.total_parcels ??
+        0
+    );
+    const total = rawTotal > 0 ? rawTotal : deliveredCount + cancelledCount;
+
+    const ratio =
+      summaryObj.success_ratio !== undefined && summaryObj.success_ratio !== null
+        ? Number(summaryObj.success_ratio)
+        : d.delivery_ratio !== undefined && d.delivery_ratio !== null
+        ? Number(d.delivery_ratio)
+        : total > 0
+        ? Number(((deliveredCount / total) * 100).toFixed(1))
+        : 0;
+
+    return {
+      phone: normPhone,
+      summary: {
+        total_parcel: total,
+        success_parcel: deliveredCount,
+        cancelled_parcel: cancelledCount,
+        success_ratio: ratio
+      },
+      total_reports: Number(d.total_reports || 0),
+      fraud_categories: d.fraud_categories || null,
+      volume_range: d.volume_range || null,
+      couriers: d.couriers || {}
+    };
+  };
+
+  // Trigger Courier Ratio & Fraud Rate Lookup for a valid 11-digit BD phone number
+  const runCourierRatioCheck = async (normPhone) => {
+    if (!isValidBdPhone(normPhone)) return;
+    latestLookupPhoneRef.current = normPhone;
+
+    setCourierCheckState({
+      status: 'loading',
+      data: null,
+      error: null,
+      phone: normPhone,
+      source: 'BD Courier'
+    });
+
+    try {
+      const res = await fetch('/api/courier-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: normPhone })
+      });
+      const json = await res.json().catch(() => ({}));
+
+      // Ignore stale response if user already typed a different phone number
+      if (latestLookupPhoneRef.current !== normPhone) return;
+
+      if (json?.status === 'completed' && json?.data) {
+        setCourierCheckState({
+          status: 'completed',
+          data: json.data,
+          error: null,
+          phone: normPhone,
+          source: 'BD Courier'
+        });
+        return;
+      }
+
+      // Secondary fallback: try eShipFirst fraud check endpoint if BD Courier is disabled or unavailable
+      const eshipRes = await fetchEShipFirstFraudScore(normPhone).catch(() => null);
+      if (latestLookupPhoneRef.current !== normPhone) return;
+
+      if (eshipRes?.ok && eshipRes?.data?.success && eshipRes?.data?.data) {
+        const normalizedData = normalizeEshipFraudPayload(eshipRes.data.data, normPhone);
+        setCourierCheckState({
+          status: 'completed',
+          data: normalizedData,
+          error: null,
+          phone: normPhone,
+          source: 'eShipFirst'
+        });
+        return;
+      }
+
+      // Fallback 3: Compute from local store order history if external APIs are disabled/unconfigured
+      const localMatches = (orders || []).filter(
+        (o) => normalizeBdPhone(o.phone) === normPhone
+      );
+      if (localMatches.length > 0) {
+        const total = localMatches.length;
+        const cancelled = localMatches.filter((o) => o.status === 'cancelled').length;
+        const success = total - cancelled;
+        const ratio = Number(((success / total) * 100).toFixed(1));
+        setCourierCheckState({
+          status: 'completed',
+          data: {
+            phone: normPhone,
+            summary: {
+              total_parcel: total,
+              success_parcel: success,
+              cancelled_parcel: cancelled,
+              success_ratio: ratio
+            },
+            couriers: {}
+          },
+          error: null,
+          phone: normPhone,
+          source: 'Store History'
+        });
+        return;
+      }
+
+      setCourierCheckState({
+        status: 'error',
+        data: null,
+        error:
+          json?.message ||
+          json?.error ||
+          eshipRes?.data?.error ||
+          'কুরিয়ার এপিআই কনফিগার করা নেই অথবা ডাটা পাওয়া যায়নি',
+        phone: normPhone,
+        source: 'BD Courier'
+      });
+    } catch (err) {
+      if (latestLookupPhoneRef.current !== normPhone) return;
+      setCourierCheckState({
+        status: 'error',
+        data: null,
+        error: err.message || 'কুরিয়ার রেশিও চেক করতে ত্রুটি হয়েছে',
+        phone: normPhone,
+        source: 'BD Courier'
+      });
+    }
+  };
+
+  // Automatic phone watcher: checks repeat customer + triggers live courier ratio check
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const normPhone = normalizeBdPhone(phone);
+    if (!isValidBdPhone(normPhone)) {
+      latestLookupPhoneRef.current = '';
+      setRepeatCustomerOrders([]);
+      setCourierCheckState((prev) =>
+        prev.status === 'idle' ? prev : { status: 'idle', data: null, error: null, phone: '', source: 'BD Courier' }
+      );
+      return;
+    }
+
+    // 1. Check store orders for returning customer & auto-fill Name/Address if blank
+    const matches = (orders || []).filter(
+      (o) => normalizeBdPhone(o.phone) === normPhone
+    );
+    setRepeatCustomerOrders(matches);
+
+    if (matches.length > 0 && lastAutoFilledPhoneRef.current !== normPhone) {
+      const latestOrd = matches[0];
+      lastAutoFilledPhoneRef.current = normPhone;
+      setCustomerName((prev) => (prev.trim() ? prev : latestOrd.name || ''));
+      setAddress((prev) => (prev.trim() ? prev : latestOrd.address || ''));
+      if (latestOrd.area === 'inside_dhaka' || latestOrd.area === 'outside_dhaka') {
+        setArea(latestOrd.area);
+      }
+    }
+
+    // 2. Automatically run Courier Ratio / Fraud Check if not already checked for this phone
+    if (courierCheckState.phone === normPhone && (courierCheckState.status === 'completed' || courierCheckState.status === 'loading')) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      runCourierRatioCheck(normPhone);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [phone, isOpen, orders]);
 
   if (!isOpen) return null;
 
@@ -321,12 +540,22 @@ export default function CreateOrderModal({
 
   // Reset form for next order
   const handleResetForNew = () => {
-    setCustomerName('');
     setPhone('');
+    setCustomerName('');
     setAddress('');
     setNotes('');
     setCreatedOrder(null);
     setErrors({});
+    setRepeatCustomerOrders([]);
+    lastAutoFilledPhoneRef.current = '';
+    latestLookupPhoneRef.current = '';
+    setCourierCheckState({
+      status: 'idle',
+      data: null,
+      error: null,
+      phone: '',
+      source: 'BD Courier'
+    });
   };
 
   // Copy standard courier text
@@ -338,6 +567,213 @@ export default function CreateOrderModal({
     }
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2000);
+  };
+
+  // Render Automatic Inline Courier Ratio & Fraud Rate Card directly under Phone Number
+  const renderInlineCourierRatio = () => {
+    const normPhone = normalizeBdPhone(phone);
+    if (!isValidBdPhone(normPhone)) return null;
+
+    if (courierCheckState.status === 'loading') {
+      return (
+        <div className="com-courier-ratio-card new">
+          <div className="com-ratio-top-row">
+            <div className="com-ratio-title-group">
+              <RotateCw size={14} className="com-spin" color="#059669" />
+              <span>কুরিয়ার সাকসেস ও ফ্রড রেশিও চেক হচ্ছে ({normPhone})...</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (courierCheckState.status === 'error') {
+      return (
+        <div className="com-courier-ratio-card medium">
+          <div className="com-ratio-top-row">
+            <div className="com-ratio-title-group" style={{ color: '#b45309' }}>
+              <AlertTriangle size={14} />
+              <span>{courierCheckState.error || 'কুরিয়ার রেশিও পাওয়া যায়নি'}</span>
+            </div>
+            <button
+              type="button"
+              className="com-ratio-refresh-btn"
+              onClick={() => runCourierRatioCheck(normPhone)}
+            >
+              <RotateCw size={11} />
+              <span>আবার চেক করুন</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (courierCheckState.status === 'completed' && courierCheckState.data) {
+      const summary = courierCheckState.data.summary || {};
+      const total = Number(summary.total_parcel || 0);
+      const success = Number(summary.success_parcel || 0);
+      const cancelled = Number(summary.cancelled_parcel || Math.max(0, total - success));
+      const successRate =
+        total > 0
+          ? Math.round(Number(summary.success_ratio ?? (success / total) * 100))
+          : 0;
+      const fraudRate = total > 0 ? Math.max(0, 100 - successRate) : 0;
+
+      let riskTone = 'new';
+      let riskLabel = '🆕 New Customer (নতুন গ্রাহক)';
+      if (total > 0) {
+        if (successRate >= 80) {
+          riskTone = 'safe';
+          riskLabel = `✓ Safe (${successRate}% Success)`;
+        } else if (successRate >= 60) {
+          riskTone = 'medium';
+          riskLabel = `⚠ Medium Risk (${fraudRate}% Fraud/Cancel)`;
+        } else {
+          riskTone = 'high';
+          riskLabel = `🚨 High Fraud Risk (${fraudRate}% Fraud/Cancel)`;
+        }
+      }
+
+      const rawCouriers = courierCheckState.data.couriers || {};
+      const courierEntries = Object.keys(rawCouriers)
+        .map((k) => ({
+          key: k,
+          name: rawCouriers[k]?.name || k.toUpperCase(),
+          total: Number(rawCouriers[k]?.total_parcel || 0),
+          success: Number(rawCouriers[k]?.success_parcel || 0),
+          cancelled: Number(rawCouriers[k]?.cancelled_parcel || 0)
+        }))
+        .filter((c) => c.total > 0);
+
+      return (
+        <div className={`com-courier-ratio-card ${riskTone}`}>
+          <div className="com-ratio-top-row">
+            <div className="com-ratio-title-group">
+              <ShieldCheck size={14} />
+              <span>Courier Ratio ({courierCheckState.source || 'BD Courier'})</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className={`com-ratio-risk-badge ${riskTone}`}>{riskLabel}</span>
+              <button
+                type="button"
+                className="com-ratio-refresh-btn"
+                onClick={() => runCourierRatioCheck(normPhone)}
+                title="Re-check courier ratio"
+              >
+                <RotateCw size={11} />
+              </button>
+            </div>
+          </div>
+
+          {/* Visual Dual-Segment Progress Bar: Success Rate vs Fraud/Cancel Rate */}
+          <div className="com-ratio-progress-wrap">
+            <div className="com-ratio-progress-labels">
+              <span className="com-ratio-succ-text">
+                ✓ Success Rate: {total > 0 ? `${successRate}%` : 'N/A (0)'}
+              </span>
+              <span className="com-ratio-fraud-text">
+                ✕ Fraud / Cancel Rate: {total > 0 ? `${fraudRate}%` : '0%'}
+              </span>
+            </div>
+            <div className="com-ratio-progress-track">
+              <div
+                className="com-ratio-fill-success"
+                style={{ width: `${total > 0 ? successRate : 0}%` }}
+              />
+              <div
+                className="com-ratio-fill-fraud"
+                style={{ width: `${total > 0 ? fraudRate : 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 3-Column Parcel Summary */}
+          <div className="com-ratio-metrics-grid">
+            <div className="com-ratio-metric-box">
+              <span className="com-ratio-metric-lbl">Total Parcels</span>
+              <span className="com-ratio-metric-val">{total}</span>
+            </div>
+            <div className="com-ratio-metric-box">
+              <span className="com-ratio-metric-lbl">Delivered (Success)</span>
+              <span className="com-ratio-metric-val succ">
+                {success} ({total > 0 ? `${successRate}%` : '0%'})
+              </span>
+            </div>
+            <div className="com-ratio-metric-box">
+              <span className="com-ratio-metric-lbl">Cancelled (Fraud)</span>
+              <span className="com-ratio-metric-val fraud">
+                {cancelled} ({total > 0 ? `${fraudRate}%` : '0%'})
+              </span>
+            </div>
+          </div>
+
+          {/* Per-Courier Breakdown Pills */}
+          {courierEntries.length > 0 && (
+            <div className="com-courier-chip-list">
+              {courierEntries.map((c) => (
+                <span key={c.key} className="com-courier-chip has-parcels">
+                  <span className="c-name">{c.name}:</span>
+                  <span className="c-score">
+                    {c.success}/{c.total}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Fraud Reports & Categories Breakdown (when available from eShipFirst) */}
+          {Number(courierCheckState.data.total_reports || 0) > 0 && (
+            <div className="com-courier-chip-list">
+              <span
+                className="com-courier-chip"
+                style={{
+                  background: '#ffe4e6',
+                  borderColor: '#fda4af',
+                  color: '#be123c'
+                }}
+              >
+                🚨 Fraud Reports: <b>{courierCheckState.data.total_reports}</b>
+              </span>
+              {courierCheckState.data.fraud_categories &&
+                Object.entries(courierCheckState.data.fraud_categories)
+                  .filter(([, count]) => Number(count) > 0)
+                  .map(([catKey, count]) => (
+                    <span key={catKey} className="com-courier-chip">
+                      <span className="c-name">
+                        {catKey.replace(/_/g, ' ')}:
+                      </span>
+                      <span className="c-score" style={{ color: '#e11d48' }}>
+                        {count}
+                      </span>
+                    </span>
+                  ))}
+            </div>
+          )}
+
+          {/* Returning Store Customer Banner */}
+          {repeatCustomerOrders.length > 0 && (
+            <div className="com-repeat-customer-bar">
+              <span>
+                🔄 আমাদের স্টোরে পূর্বে {repeatCustomerOrders.length}টি অর্ডার করেছেন ({repeatCustomerOrders[0]?.name})
+              </span>
+              <button
+                type="button"
+                className="com-repeat-fill-btn"
+                onClick={() => {
+                  const latest = repeatCustomerOrders[0];
+                  if (latest?.name) setCustomerName(latest.name);
+                  if (latest?.address) setAddress(latest.address);
+                }}
+              >
+                নাম ও ঠিকানা বসান
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -419,7 +855,46 @@ export default function CreateOrderModal({
                   <span>Customer & Delivery (গ্রাহকের তথ্য)</span>
                 </div>
 
-                {/* Customer Name */}
+                {/* 1. FIRST FIELD: Customer Phone Number + Automatic Courier Ratio Check */}
+                <div className="com-form-group">
+                  <label className="com-label">
+                    <span>Phone Number (মোবাইল নম্বর) <span className="req">*</span></span>
+                    {phone && (
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          color: isValidBdPhone(phone) ? '#059669' : '#64748b',
+                          fontWeight: 700
+                        }}
+                      >
+                        {normalizeBdPhone(phone)}
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="tel"
+                    className={`com-input ${errors.phone ? 'error' : ''}`}
+                    placeholder="01XXXXXXXXX (নম্বর লিখলেই অটো কুরিয়ার রেশিও চেক হবে)"
+                    value={phone}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (errors.phone) {
+                        setErrors((prev) => {
+                          const c = { ...prev };
+                          delete c.phone;
+                          return c;
+                        });
+                      }
+                    }}
+                    autoFocus
+                  />
+                  {errors.phone && <span className="com-error-text">{errors.phone}</span>}
+
+                  {/* Automatic Live Courier Success Rate & Fraud Rate Display */}
+                  {renderInlineCourierRatio()}
+                </div>
+
+                {/* 2. SECOND FIELD: Customer Name */}
                 <div className="com-form-group">
                   <label className="com-label">
                     <span>Customer Name (নাম) <span className="req">*</span></span>
@@ -429,35 +904,23 @@ export default function CreateOrderModal({
                     className={`com-input ${errors.customerName ? 'error' : ''}`}
                     placeholder="গ্রাহকের পুরো নাম..."
                     value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    autoFocus
+                    onChange={(e) => {
+                      setCustomerName(e.target.value);
+                      if (errors.customerName) {
+                        setErrors((prev) => {
+                          const c = { ...prev };
+                          delete c.customerName;
+                          return c;
+                        });
+                      }
+                    }}
                   />
                   {errors.customerName && (
                     <span className="com-error-text">{errors.customerName}</span>
                   )}
                 </div>
 
-                {/* Customer Phone */}
-                <div className="com-form-group">
-                  <label className="com-label">
-                    <span>Phone Number (মোবাইল নম্বর) <span className="req">*</span></span>
-                    {phone && (
-                      <span style={{ fontSize: '11px', color: '#059669', fontWeight: 600 }}>
-                        {normalizeBdPhone(phone)}
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="tel"
-                    className={`com-input ${errors.phone ? 'error' : ''}`}
-                    placeholder="01XXXXXXXXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                  {errors.phone && <span className="com-error-text">{errors.phone}</span>}
-                </div>
-
-                {/* Delivery Address */}
+                {/* 3. THIRD FIELD: Full Delivery Address */}
                 <div className="com-form-group">
                   <label className="com-label">
                     <span>Full Address (পূর্ণ ঠিকানা) <span className="req">*</span></span>
@@ -467,7 +930,16 @@ export default function CreateOrderModal({
                     className={`com-textarea ${errors.address ? 'error' : ''}`}
                     placeholder="বাসা/হোল্ডিং, রোড, থানা, জেলা..."
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      if (errors.address) {
+                        setErrors((prev) => {
+                          const c = { ...prev };
+                          delete c.address;
+                          return c;
+                        });
+                      }
+                    }}
                   />
                   {errors.address && <span className="com-error-text">{errors.address}</span>}
                 </div>
